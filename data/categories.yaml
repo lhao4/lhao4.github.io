@@ -1,0 +1,31 @@
+- name: 编程语言
+  icon: "💻"
+  desc: C、C++、Java、Python 学习笔记
+
+- name: 数据结构与算法
+  icon: "🧮"
+  desc: 常用数据结构与算法分析整理
+
+- name: 数据库
+  icon: "🗄️"
+  desc: MySQL 等数据库使用与原理
+
+- name: Linux与运维
+  icon: "🐧"
+  desc: Linux 操作系统、Docker 容器化
+
+- name: 开发工具
+  icon: "🔧"
+  desc: Git、GitHub、CMake 等工具使用
+
+- name: 项目实战
+  icon: "🚀"
+  desc: 项目开发记录与总结
+
+- name: 面试准备
+  icon: "📝"
+  desc: 八股文整理与面试经验总结
+
+- name: 建站
+  icon: "🪺"
+  desc: 博客搭建与折腾记录

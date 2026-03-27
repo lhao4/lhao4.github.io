@@ -1,0 +1,93 @@
+{{- define "main" }}
+
+<div class="cats-page">
+  <h1 class="cats-title">分类</h1>
+
+  {{/* 构建分类数据映射：名称 → 文章数 */}}
+  {{- $taxonomy := site.Taxonomies.categories }}
+
+  {{/* 用数据文件渲染卡片 */}}
+  <div class="cats-grid">
+    {{- range site.Data.categories }}
+    {{- $cat := . }}
+    {{- $slug := $cat.name | urlize }}
+    {{- $pages := index $taxonomy $slug }}
+    {{- $count := 0 }}
+    {{- if $pages }}{{- $count = len $pages }}{{- end }}
+    <a href="{{ "/categories/" | relURL }}{{ $slug }}/" class="cat-card">
+      <div class="cat-icon">{{ $cat.icon }}</div>
+      <div class="cat-info">
+        <div class="cat-name">{{ $cat.name }}</div>
+        <div class="cat-desc">{{ $cat.desc }}</div>
+      </div>
+      <div class="cat-count">{{ $count }} 篇</div>
+    </a>
+    {{- end }}
+  </div>
+</div>
+
+<style>
+.cats-page {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+.cats-title {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.cats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+.cat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--entry);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+}
+.cat-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.cat-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  width: 2.5rem;
+  text-align: center;
+}
+.cat-info {
+  flex: 1;
+  min-width: 0;
+}
+.cat-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+.cat-desc {
+  font-size: 0.8rem;
+  color: var(--secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cat-count {
+  font-size: 0.85rem;
+  color: var(--secondary);
+  flex-shrink: 0;
+  background: var(--code-bg);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+}
+</style>
+
+{{- end }}
