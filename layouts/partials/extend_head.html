@@ -1,0 +1,55 @@
+{{- if eq .Kind "page" }}
+<style>
+/* 阅读进度条 */
+#read-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: var(--primary);
+  z-index: 9999;
+  transition: width 0.1s linear;
+}
+
+/* 侧边目录 */
+#toc-sidebar {
+  display: none;
+  position: fixed;
+  top: 80px;
+  right: max(20px, calc((100vw - 780px) / 2 - 220px));
+  width: 200px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  z-index: 100;
+  padding: 0.8rem;
+  border-left: 2px solid var(--border);
+}
+#toc-sidebar::-webkit-scrollbar { width: 3px; }
+#toc-sidebar::-webkit-scrollbar-thumb { background: var(--border); }
+
+#toc-sidebar a {
+  display: block;
+  color: var(--secondary);
+  text-decoration: none;
+  padding: 0.15rem 0;
+  border-radius: 3px;
+  transition: color 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#toc-sidebar a:hover { color: var(--primary); }
+#toc-sidebar a.toc-active { color: var(--primary); font-weight: 500; }
+#toc-sidebar ul { list-style: none; padding: 0; margin: 0; }
+#toc-sidebar li { padding: 0; }
+#toc-sidebar li li { padding-left: 0.8rem; }
+#toc-sidebar li li li { padding-left: 1.6rem; }
+
+@media (min-width: 1200px) {
+  #toc-sidebar { display: block; }
+}
+</style>
+{{- end }}

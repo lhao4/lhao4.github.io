@@ -1,0 +1,21 @@
+/* 导航页和工具页全宽展示 */
+body.nav-page .main,
+body.tools-page .main {
+  max-width: 100%;
+  padding: 0 2rem;
+}
+
+/* 首页和列表页加宽，减少上下间距 */
+body.list .main {
+  max-width: 960px;
+}
+
+body.list .post-entry {
+  margin-bottom: 0.6rem;
+  padding: 1rem 1.2rem;
+}
+
+body.list .first-entry {
+  margin-bottom: 0.8rem;
+  padding: 1.2rem;
+}

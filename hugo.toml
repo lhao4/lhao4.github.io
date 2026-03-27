@@ -1,0 +1,105 @@
+baseURL = 'https://lhao4.github.io/'
+languageCode = 'zh-cn'
+title = 'HaoNest'
+theme = 'PaperMod'
+paginate = 10
+enableRobotsTXT = true
+buildDrafts = false
+buildFuture = false
+buildExpired = false
+
+[params]
+  env = 'production'
+  title = 'HaoNest'
+  description = '博客 · 导航 · 工具'
+  author = 'Hao'
+  defaultTheme = 'auto'
+  disableThemeToggle = false
+  ShowReadingTime = true
+  ShowShareButtons = false
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = true
+  ShowCodeCopyButtons = true
+  ShowWordCount = true
+  ShowRssButtonInSectionTermList = true
+  UseHugoToc = true
+  showtoc = true
+  tocopen = false
+  comments = true
+  hidemeta = false
+  hideSummary = false
+
+
+[[params.socialIcons]]
+  name = 'github'
+  url = 'https://github.com/lhao4'
+
+[[params.socialIcons]]
+  name = 'rss'
+  url = '/index.xml'
+
+[params.label]
+  text = 'HaoNest'
+
+[params.fuseOpts]
+  isCaseSensitive = false
+  shouldSort = true
+  location = 0
+  distance = 1000
+  threshold = 0.4
+  minMatchCharLength = 0
+  limit = 10
+  keys = ['title', 'permalink', 'summary', 'content']
+
+[[menu.main]]
+  identifier = 'posts'
+  name = '博客'
+  url = '/posts/'
+  weight = 10
+
+[[menu.main]]
+  identifier = 'nav'
+  name = '导航'
+  url = '/nav/'
+  weight = 20
+
+[[menu.main]]
+  identifier = 'tools'
+  name = '工具'
+  url = '/tools/'
+  weight = 30
+
+[[menu.main]]
+  identifier = 'categories'
+  name = '分类'
+  url = '/categories/'
+  weight = 40
+
+[[menu.main]]
+  identifier = 'tags'
+  name = '标签'
+  url = '/tags/'
+  weight = 50
+
+[[menu.main]]
+  identifier = 'favorites'
+  name = '收藏'
+  url = '/favorites/'
+  weight = 60
+
+[[menu.main]]
+  identifier = 'search'
+  name = '搜索'
+  url = '/search/'
+  weight = 70
+
+[outputs]
+  home = ['HTML', 'RSS', 'JSON']
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    noClasses = false
+    style = 'github-dark'

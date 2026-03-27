@@ -1,0 +1,109 @@
+{{- define "main" }}
+
+{{/* 收集所有分类 */}}
+{{- $categories := site.Taxonomies.categories }}
+
+{{/* 分类过滤按钮 */}}
+{{- if $categories }}
+<div class="posts-filter">
+  <button class="filter-btn active" data-cat="all">全部<span class="filter-count">{{ len .Pages }}</span></button>
+  {{- range $name, $pages := $categories }}
+  <button class="filter-btn" data-cat="{{ $name | urlize }}">
+    {{ $name }}<span class="filter-count">{{ len $pages }}</span>
+  </button>
+  {{- end }}
+</div>
+{{- end }}
+
+{{/* 文章列表（全量加载，JS 控制显示） */}}
+<div id="posts-list">
+{{- range .Pages }}
+{{- $cats := slice }}
+{{- range .GetTerms "categories" }}
+  {{- $cats = $cats | append .Data.Term }}
+{{- end }}
+<article class="post-entry" data-cats="{{ delimit $cats "," }}">
+  <header class="entry-header">
+    <h2>{{ .Title }}</h2>
+  </header>
+  {{- if (ne (.Param "hideSummary") true) }}
+  <div class="entry-content">
+    <p>{{ .Summary | plainify | htmlUnescape }}{{ if .Truncated }}...{{ end }}</p>
+  </div>
+  {{- end }}
+  <footer class="entry-footer">
+    {{- partial "post_meta.html" . -}}
+  </footer>
+  <a class="entry-link" aria-label="post link to {{ .Title | plainify }}" href="{{ .Permalink }}"></a>
+</article>
+{{- end }}
+</div>
+
+<div id="posts-empty" style="display:none;padding:2rem 0;color:var(--secondary);text-align:center;">该分类下暂无文章</div>
+
+<style>
+.posts-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+.filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+.filter-btn.active {
+  background: var(--primary);
+  color: var(--theme);
+  border-color: var(--primary);
+}
+.filter-btn.active .filter-count {
+  background: rgba(255,255,255,0.25);
+}
+.filter-count {
+  font-size: 0.75rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--code-bg);
+}
+</style>
+
+<script>
+(function () {
+  const btns = document.querySelectorAll('.filter-btn');
+  const articles = document.querySelectorAll('#posts-list .post-entry');
+  const empty = document.getElementById('posts-empty');
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      btns.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const cat = btn.dataset.cat;
+      let shown = 0;
+      articles.forEach(article => {
+        const cats = article.dataset.cats ? article.dataset.cats.split(',') : [];
+        const visible = cat === 'all' || cats.includes(cat);
+        article.style.display = visible ? '' : 'none';
+        if (visible) shown++;
+      });
+      empty.style.display = shown === 0 ? 'block' : 'none';
+    });
+  });
+})();
+</script>
+
+{{- end }}

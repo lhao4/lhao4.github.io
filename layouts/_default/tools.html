@@ -1,0 +1,98 @@
+{{- define "main" }}
+<script>document.body.classList.add('tools-page')</script>
+<div class="tools-page">
+  <h1 class="tools-title">🔧 在线工具</h1>
+  <p class="tools-subtitle">常用开发工具，无需安装，即开即用</p>
+
+  <div class="tools-grid">
+
+    <div class="tools-category">
+      <h2>🔐 编码 / 加密</h2>
+      <div class="tool-list">
+        <a href="/tools/base/" class="tool-item">进制转换</a>
+        <a href="/tools/url/" class="tool-item">URL 编解码</a>
+        <a href="/tools/hash/" class="tool-item">MD5 / SHA 加密</a>
+        <a href="/tools/uuid/" class="tool-item">UUID 生成</a>
+      </div>
+    </div>
+
+    <div class="tools-category">
+      <h2>📋 格式化</h2>
+      <div class="tool-list">
+        <a href="/tools/json/" class="tool-item">JSON 格式化</a>
+        <a href="/tools/xml/" class="tool-item">XML 格式化</a>
+        <a href="/tools/sql/" class="tool-item">SQL 格式化</a>
+      </div>
+    </div>
+
+    <div class="tools-category">
+      <h2>🐞 开发调试</h2>
+      <div class="tool-list">
+        <a href="/tools/regex/" class="tool-item">正则测试</a>
+        <a href="/tools/jwt/" class="tool-item">JWT 解析</a>
+        <a href="/tools/request/" class="tool-item">在线接口测试</a>
+        <a href="/tools/curl/" class="tool-item">cURL 转代码</a>
+      </div>
+    </div>
+
+    <div class="tools-category">
+      <h2>🛠️ 实用工具</h2>
+      <div class="tool-list">
+        <a href="/tools/timestamp/" class="tool-item">时间戳转换</a>
+        <a href="/tools/ip/" class="tool-item">IP 查询</a>
+        <a href="/tools/svg/" class="tool-item">SVG 编辑优化</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<style>
+.tools-page {
+  width: 100%;
+  padding: 0;
+}
+.tools-title {
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+}
+.tools-subtitle {
+  color: var(--secondary);
+  margin-bottom: 2rem;
+}
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+.tools-category {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1.2rem;
+  background: var(--entry);
+}
+.tools-category h2 {
+  font-size: 1rem;
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+.tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.tool-item {
+  padding: 0.5rem 0.8rem;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  font-size: 0.9rem;
+  transition: background 0.2s;
+}
+.tool-item:hover {
+  background: var(--code-bg);
+  color: var(--primary);
+}
+</style>
+{{- end }}

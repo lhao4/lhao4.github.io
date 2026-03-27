@@ -1,0 +1,90 @@
+{{- define "main" }}
+<div class="tool-wrapper">
+  <div class="tool-header">
+    <a href="/tools/" class="tool-back">← 返回工具列表</a>
+    <h1>{{ .Title }}</h1>
+    {{- if .Params.desc }}<p class="tool-desc">{{ .Params.desc }}</p>{{- end }}
+  </div>
+  <div class="tool-body">
+    {{- .Content }}
+  </div>
+</div>
+
+<style>
+.tool-wrapper {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+.tool-header {
+  margin-bottom: 1.5rem;
+}
+.tool-back {
+  font-size: 0.85rem;
+  color: var(--secondary);
+  text-decoration: none;
+}
+.tool-back:hover { color: var(--primary); }
+.tool-header h1 {
+  margin: 0.5rem 0 0.3rem;
+  font-size: 1.5rem;
+}
+.tool-desc {
+  color: var(--secondary);
+  margin: 0;
+  font-size: 0.9rem;
+}
+.tool-body textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: monospace;
+  font-size: 0.9rem;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--code-bg);
+  color: inherit;
+  resize: vertical;
+  outline: none;
+}
+.tool-body textarea:focus {
+  border-color: var(--primary);
+}
+.tool-btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 6px;
+  background: var(--primary);
+  color: var(--theme);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.tool-btn:hover { opacity: 0.85; }
+.tool-btn-secondary {
+  background: var(--code-bg);
+  color: inherit;
+  border: 1px solid var(--border);
+}
+.tool-row {
+  display: flex;
+  gap: 0.6rem;
+  margin: 0.8rem 0;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.tool-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+.tool-label {
+  font-size: 0.85rem;
+  color: var(--secondary);
+  margin-bottom: 0.3rem;
+}
+@media (max-width: 600px) {
+  .tool-cols { grid-template-columns: 1fr; }
+}
+</style>
+{{- end }}

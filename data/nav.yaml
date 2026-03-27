@@ -1,0 +1,83 @@
+categories:
+  - name: 开发工具
+    icon: "🛠️"
+    sites:
+      - name: GitHub
+        url: https://github.com
+        desc: 全球最大代码托管平台
+      - name: Stack Overflow
+        url: https://stackoverflow.com
+        desc: 开发者问答社区
+      - name: MDN Web Docs
+        url: https://developer.mozilla.org
+        desc: Web 技术权威文档
+      - name: Can I Use
+        url: https://caniuse.com
+        desc: 浏览器兼容性查询
+      - name: DevDocs
+        url: https://devdocs.io
+        desc: 多语言开发文档合集
+
+  - name: AI 工具
+    icon: "🤖"
+    sites:
+      - name: ChatGPT
+        url: https://chat.openai.com
+        desc: OpenAI 对话 AI
+      - name: Claude
+        url: https://claude.ai
+        desc: Anthropic AI 助手
+      - name: Gemini
+        url: https://gemini.google.com
+        desc: Google AI 助手
+      - name: Copilot
+        url: https://copilot.microsoft.com
+        desc: 微软 AI 助手
+      - name: Hugging Face
+        url: https://huggingface.co
+        desc: AI 模型社区
+
+  - name: 学习资源
+    icon: "📚"
+    sites:
+      - name: 掘金
+        url: https://juejin.cn
+        desc: 开发者技术社区
+      - name: LeetCode
+        url: https://leetcode.cn
+        desc: 算法刷题平台
+      - name: 菜鸟教程
+        url: https://www.runoob.com
+        desc: 编程入门教程
+      - name: Coursera
+        url: https://www.coursera.org
+        desc: 在线课程平台
+      - name: CS自学指南
+        url: https://csdiy.wiki
+        desc: CS 自学路线指南
+
+  - name: 影视娱乐
+    icon: "🎬"
+    sites:
+      - name: Bilibili
+        url: https://www.bilibili.com
+        desc: 国内视频平台
+      - name: 豆瓣
+        url: https://www.douban.com
+        desc: 影视书籍评分
+      - name: YouTube
+        url: https://www.youtube.com
+        desc: 全球最大视频平台
+
+  - name: 考试刷题
+    icon: "📝"
+    sites:
+      - name: LeetCode
+        url: https://leetcode.cn
+        desc: 算法面试题库
+      - name: 牛客网
+        url: https://www.nowcoder.com
+        desc: IT 求职刷题平台
+      - name: 洛谷
+        url: https://www.luogu.com.cn
+        desc: 竞赛编程题库

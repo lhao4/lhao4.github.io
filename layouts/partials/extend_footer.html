@@ -1,0 +1,45 @@
+{{- if eq .Kind "page" }}
+<div id="read-progress"></div>
+
+<div id="toc-sidebar"></div>
+
+<script>
+// 阅读进度条
+(function() {
+  const bar = document.getElementById('read-progress');
+  function update() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    bar.style.width = (docHeight > 0 ? (scrollTop / docHeight) * 100 : 0) + '%';
+  }
+  window.addEventListener('scroll', update, { passive: true });
+})();
+
+// 侧边目录
+(function() {
+  const sidebar = document.getElementById('toc-sidebar');
+  const tocEl = document.querySelector('.post-single #TableOfContents');
+  if (!tocEl || !sidebar) return;
+
+  sidebar.innerHTML = tocEl.innerHTML;
+  tocEl.parentElement.style.display = 'none';
+
+  // 滚动高亮当前标题
+  const links = [...sidebar.querySelectorAll('a')];
+  const headings = links.map(a => {
+    try { return document.getElementById(decodeURIComponent(a.hash.slice(1))); } catch(e) { return null; }
+  }).filter(Boolean);
+
+  function onScroll() {
+    let cur = -1;
+    const offset = 80;
+    for (let i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top <= offset) cur = i;
+    }
+    links.forEach((a, i) => a.classList.toggle('toc-active', i === cur));
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+})();
+</script>
+{{- end }}

@@ -1,0 +1,97 @@
+{{- define "main" }}
+<div class="fav-page">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+    <h1 style="margin:0;font-size:1.5rem;">🔖 我的收藏</h1>
+    <button class="tool-btn tool-btn-secondary" onclick="clearAllFavs()" style="font-size:0.8rem;">清空全部</button>
+  </div>
+
+  <div id="fav-empty" style="display:none;padding:3rem 0;text-align:center;color:var(--secondary);">
+    还没有收藏任何文章，去<a href="/posts/" style="color:var(--primary);">博客</a>看看吧
+  </div>
+
+  <div id="fav-list"></div>
+</div>
+
+<style>
+.fav-page { max-width: 760px; margin: 0 auto; padding: 0 1rem; }
+.fav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 0.6rem;
+  background: var(--entry);
+  transition: border-color 0.2s;
+}
+.fav-item:hover { border-color: var(--primary); }
+.fav-item a {
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+  min-width: 0;
+}
+.fav-item-title {
+  font-weight: 500;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.fav-item-meta {
+  font-size: 0.8rem;
+  color: var(--secondary);
+  margin-top: 0.2rem;
+}
+.fav-del-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--secondary);
+  font-size: 1rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-left: 0.5rem;
+  transition: color 0.2s;
+}
+.fav-del-btn:hover { color: #e53e3e; }
+</style>
+
+<script>
+function loadFavs() {
+  const favs = JSON.parse(localStorage.getItem('haonest-favs') || '[]');
+  const list = document.getElementById('fav-list');
+  const empty = document.getElementById('fav-empty');
+  if (favs.length === 0) {
+    empty.style.display = 'block';
+    list.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = favs.map((f, i) => `
+    <div class="fav-item">
+      <a href="${f.url}">
+        <div class="fav-item-title">${f.title}</div>
+        <div class="fav-item-meta">收藏于 ${f.date}</div>
+      </a>
+      <button class="fav-del-btn" onclick="removeFav(${i})" title="取消收藏">✕</button>
+    </div>
+  `).join('');
+}
+function removeFav(i) {
+  const favs = JSON.parse(localStorage.getItem('haonest-favs') || '[]');
+  favs.splice(i, 1);
+  localStorage.setItem('haonest-favs', JSON.stringify(favs));
+  loadFavs();
+}
+function clearAllFavs() {
+  if (confirm('确定清空所有收藏？')) {
+    localStorage.removeItem('haonest-favs');
+    loadFavs();
+  }
+}
+loadFavs();
+</script>
+{{- end }}

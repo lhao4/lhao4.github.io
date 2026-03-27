@@ -1,0 +1,114 @@
+{{- define "main" }}
+
+<article class="post-single">
+  <header class="post-header">
+    {{ partial "breadcrumbs.html" . }}
+    <h1 class="post-title entry-hint-parent">{{ .Title }}</h1>
+    {{- if .Description }}
+    <div class="post-description">{{ .Description }}</div>
+    {{- end }}
+    {{- if not (.Param "hideMeta") }}
+    <div class="post-meta" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+      <span>{{- partial "post_meta.html" . -}}</span>
+      <button id="fav-btn" onclick="toggleFav()" class="fav-toggle-btn" title="收藏文章">
+        <span id="fav-icon">☆</span>
+        <span id="fav-text">收藏</span>
+      </button>
+    </div>
+    {{- end }}
+  </header>
+
+  {{- $isHidden := (.Param "cover.hiddenInSingle") | default (.Param "cover.hidden") | default false }}
+  {{- partial "cover.html" (dict "cxt" . "IsSingle" true "isHidden" $isHidden) }}
+  {{- if (.Param "ShowToc") }}
+  {{- partial "toc.html" . }}
+  {{- end }}
+
+  {{- if .Content }}
+  <div class="post-content">
+    {{- if not (.Param "disableAnchoredHeadings") }}
+    {{- partial "anchored_headings.html" .Content -}}
+    {{- else }}{{ .Content }}{{ end }}
+  </div>
+  {{- end }}
+
+  <footer class="post-footer">
+    {{- $tags := .Language.Params.Taxonomies.tag | default "tags" }}
+    <ul class="post-tags">
+      {{- range ($.GetTerms $tags) }}
+      <li><a href="{{ .Permalink }}">{{ .LinkTitle }}</a></li>
+      {{- end }}
+    </ul>
+    {{- if (.Param "ShowPostNavLinks") }}
+    {{- partial "post_nav_links.html" . }}
+    {{- end }}
+  </footer>
+
+  {{- if (.Param "comments") }}
+  {{- partial "comments.html" . }}
+  {{- end }}
+</article>
+
+<style>
+.fav-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.fav-toggle-btn:hover { border-color: #e8a000; color: #e8a000; }
+.fav-toggle-btn.is-faved { border-color: #e8a000; color: #e8a000; background: rgba(232,160,0,0.08); }
+</style>
+
+<script>
+(function () {
+  const KEY = 'haonest-favs';
+  const url = window.location.pathname;
+  const title = document.title.replace(' | HaoNest', '');
+  const btn = document.getElementById('fav-btn');
+  const icon = document.getElementById('fav-icon');
+  const text = document.getElementById('fav-text');
+
+  function getFavs() { return JSON.parse(localStorage.getItem(KEY) || '[]'); }
+  function isFaved() { return getFavs().some(f => f.url === url); }
+
+  function render() {
+    if (isFaved()) {
+      btn.classList.add('is-faved');
+      icon.textContent = '★';
+      text.textContent = '已收藏';
+    } else {
+      btn.classList.remove('is-faved');
+      icon.textContent = '☆';
+      text.textContent = '收藏';
+    }
+  }
+
+  window.toggleFav = function () {
+    const favs = getFavs();
+    const idx = favs.findIndex(f => f.url === url);
+    if (idx >= 0) {
+      favs.splice(idx, 1);
+    } else {
+      favs.unshift({
+        title,
+        url,
+        date: new Date().toLocaleDateString('zh-CN')
+      });
+    }
+    localStorage.setItem(KEY, JSON.stringify(favs));
+    render();
+  };
+
+  render();
+})();
+</script>
+
+{{- end }}

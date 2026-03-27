@@ -1,0 +1,101 @@
+{{- define "main" }}
+<script>document.body.classList.add('nav-page')</script>
+<div class="nav-page">
+  <h1 class="nav-title">🔖 网站导航</h1>
+  <p class="nav-subtitle">收藏的常用网站，按类别整理</p>
+
+  {{- range .Site.Data.nav.categories }}
+  <div class="nav-category">
+    <h2 class="nav-category-title">{{ .icon }} {{ .name }}</h2>
+    <div class="nav-grid">
+      {{- range .sites }}
+      <a href="{{ .url }}" target="_blank" rel="noopener noreferrer" class="nav-card">
+        <div class="nav-card-header">
+          <img
+            src="https://www.google.com/s2/favicons?domain={{ .url }}&sz=32"
+            alt="{{ .name }}"
+            class="nav-favicon"
+            onerror="this.style.display='none'"
+          />
+          <span class="nav-card-name">{{ .name }}</span>
+        </div>
+        <p class="nav-card-desc">{{ .desc }}</p>
+      </a>
+      {{- end }}
+    </div>
+  </div>
+  {{- end }}
+</div>
+
+<style>
+.nav-page {
+  width: 100%;
+  padding: 0;
+}
+.nav-title {
+  font-size: 1.8rem;
+  margin-bottom: 0.3rem;
+}
+.nav-subtitle {
+  color: var(--secondary);
+  margin-bottom: 2rem;
+}
+.nav-category {
+  margin-bottom: 2.5rem;
+}
+.nav-category-title {
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+.nav-card {
+  display: block;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  background: var(--entry);
+}
+.nav-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.nav-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.nav-favicon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+.nav-card-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav-card-desc {
+  font-size: 0.8rem;
+  color: var(--secondary);
+  margin: 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>
+{{- end }}
