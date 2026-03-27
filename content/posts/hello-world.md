@@ -1,6 +1,6 @@
 ---
 title: "从零搭建 HaoNest：个人博客完整搭建与部署记录"
-date: 2026-03-27
+date: 2024-01-01
 categories: ["建站"]
 tags: ["Hugo", "博客", "GitHub Pages", "PaperMod"]
 ---
