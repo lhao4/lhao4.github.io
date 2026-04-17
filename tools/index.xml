@@ -1,0 +1,984 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>在线工具 on HaoNest</title><link>https://lhao4.github.io/tools/</link><description>Recent content in 在线工具 on HaoNest</description><generator>Hugo</generator><language>zh-cn</language><atom:link href="https://lhao4.github.io/tools/index.xml" rel="self" type="application/rss+xml"/><item><title>cURL 转代码</title><link>https://lhao4.github.io/tools/curl/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/curl/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;span class="tool-label" style="margin:0;"&gt;目标语言&lt;/span&gt;
+&lt;select id="langSelect" class="tool-select" onchange="convert()"&gt;
+&lt;option value="python"&gt;Python (requests)&lt;/option&gt;
+&lt;option value="js"&gt;JavaScript (fetch)&lt;/option&gt;
+&lt;option value="go"&gt;Go (net/http)&lt;/option&gt;
+&lt;/select&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyResult()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearAll()"&gt;清空&lt;/button&gt;
+&lt;span id="status" style="font-size:0.85rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 cURL 命令&lt;/div&gt;
+&lt;textarea id="curlInput" rows="12" placeholder="curl -X POST https://api.example.com/users \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer token123' \
+-d '{&amp;quot;name&amp;quot;: &amp;quot;Alice&amp;quot;, &amp;quot;age&amp;quot;: 25}'"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;转换结果 &lt;span id="copyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="codeOutput" rows="12" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+// ── 解析 cURL 命令 ────────────────────────────────────────────
+function parseCurl(raw) {
+// 合并续行符，去掉 curl 前缀
+const line = raw.replace(/\\\n/g, ' ').replace(/\\\r\n/g, ' ').trim();
+const result = { method: 'GET', url: '', headers: {}, body: null, auth: null };
+// tokenize：保留引号内的空格
+const tokens = [];
+let cur = '', inQ = false, qChar = '';
+for (let i = 0; i &lt; line.length; i++) {
+const c = line[i];
+if (inQ) {
+if (c === qChar) { inQ = false; }
+else { cur += c; }
+} else if (c === '"' || c === "'") {
+inQ = true; qChar = c;
+} else if (c === ' ' || c === '\t') {
+if (cur) { tokens.push(cur); cur = ''; }
+} else {
+cur += c;
+}
+}
+if (cur) tokens.push(cur);
+// 跳过 "curl"
+let i = tokens[0] === 'curl' ? 1 : 0;
+while (i &lt; tokens.length) {
+const t = tokens[i];
+if (t === '-X' || t === '--request') {
+result.method = tokens[++i].toUpperCase();
+} else if (t === '-H' || t === '--header') {
+const h = tokens[++i];
+const idx = h.indexOf(':');
+if (idx &gt; -1) {
+const k = h.slice(0, idx).trim();
+const v = h.slice(idx + 1).trim();
+result.headers[k] = v;
+}
+} else if (t === '-d' || t === '--data' || t === '--data-raw' || t === '--data-binary') {
+result.body = tokens[++i];
+if (!result.method || result.method === 'GET') result.method = 'POST';
+} else if (t === '-u' || t === '--user') {
+result.auth = tokens[++i];
+} else if (t === '-A' || t === '--user-agent') {
+result.headers['User-Agent'] = tokens[++i];
+} else if (t === '-b' || t === '--cookie') {
+result.headers['Cookie'] = tokens[++i];
+} else if (!t.startsWith('-')) {
+if (!result.url) result.url = t;
+}
+i++;
+}
+return result;
+}
+// ── 生成各语言代码 ────────────────────────────────────────────
+function toPython(p) {
+const lines = ['import requests', ''];
+const headersStr = Object.keys(p.headers).length
+? 'headers = {\n' + Object.entries(p.headers).map(([k,v]) =&gt; ` '${k}': '${v}'`).join(',\n') + '\n}\n'
+: '';
+if (headersStr) lines.push(headersStr);
+const method = p.method.toLowerCase();
+let call = `response = requests.${method}(\n '${p.url}'`;
+if (Object.keys(p.headers).length) call += ',\n headers=headers';
+if (p.auth) {
+const [u, pw] = p.auth.split(':');
+call += `,\n auth=('${u}', '${pw || ''}')`;
+}
+if (p.body) {
+try { JSON.parse(p.body); call += `,\n json=${pyJson(JSON.parse(p.body))}`; }
+catch { call += `,\n data='${p.body.replace(/'/g, "\\'")}'`; }
+}
+call += '\n)';
+lines.push(call, '', 'print(response.status_code)', 'print(response.json())');
+return lines.join('\n');
+}
+function pyJson(obj, indent) {
+indent = indent || 4;
+const pad = ' '.repeat(indent);
+if (obj === null) return 'None';
+if (typeof obj === 'boolean') return obj ? 'True' : 'False';
+if (typeof obj === 'number') return String(obj);
+if (typeof obj === 'string') return `'${obj.replace(/'/g, "\\'")}'`;
+if (Array.isArray(obj)) {
+if (!obj.length) return '[]';
+return '[\n' + obj.map(v =&gt; pad + ' ' + pyJson(v, indent + 2)).join(',\n') + '\n' + pad + ']';
+}
+const entries = Object.entries(obj).map(([k, v]) =&gt; `${pad} '${k}': ${pyJson(v, indent + 4)}`);
+return '{\n' + entries.join(',\n') + '\n' + pad + '}';
+}
+function toJS(p) {
+const lines = [];
+const opts = { method: p.method };
+if (Object.keys(p.headers).length) opts.headers = p.headers;
+if (p.auth) opts.headers = { ...opts.headers, 'Authorization': 'Basic ' + btoa(p.auth) };
+if (p.body) opts.body = p.body;
+lines.push(`const response = await fetch('${p.url}', ${JSON.stringify(opts, null, 2)});`, '');
+lines.push('const data = await response.json();', 'console.log(data);');
+return lines.join('\n');
+}
+function toGo(p) {
+const lines = ['package main', '', 'import (', '\t"fmt"', '\t"io"', '\t"net/http"'];
+if (p.body) lines.push('\t"strings"');
+lines.push(')', '', 'func main() {');
+if (p.body) {
+lines.push(`\tbody := strings.NewReader(\`${p.body}\`)`);
+lines.push(`\treq, _ := http.NewRequest("${p.method}", "${p.url}", body)`);
+} else {
+lines.push(`\treq, _ := http.NewRequest("${p.method}", "${p.url}", nil)`);
+}
+Object.entries(p.headers).forEach(([k, v]) =&gt; {
+lines.push(`\treq.Header.Set("${k}", "${v}")`);
+});
+if (p.auth) {
+const [u, pw] = p.auth.split(':');
+lines.push(`\treq.SetBasicAuth("${u}", "${pw || ''}")`);
+}
+lines.push(
+'',
+'\tclient := &amp;http.Client{}',
+'\tresp, err := client.Do(req)',
+'\tif err != nil { panic(err) }',
+'\tdefer resp.Body.Close()',
+'',
+'\tbody2, _ := io.ReadAll(resp.Body)',
+'\tfmt.Println(string(body2))',
+'}'
+);
+return lines.join('\n');
+}
+// ── 主转换函数 ────────────────────────────────────────────────
+function convert() {
+const raw = document.getElementById('curlInput').value.trim();
+const status = document.getElementById('status');
+if (!raw) { document.getElementById('codeOutput').value = ''; return; }
+try {
+const parsed = parseCurl(raw);
+if (!parsed.url) throw new Error('未找到 URL');
+const lang = document.getElementById('langSelect').value;
+const code = lang === 'python' ? toPython(parsed)
+: lang === 'js' ? toJS(parsed)
+: toGo(parsed);
+document.getElementById('codeOutput').value = code;
+status.style.color = '#38a169';
+status.textContent = '✓ 转换成功';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+document.getElementById('codeOutput').value = '';
+}
+}
+function copyResult() {
+const val = document.getElementById('codeOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('copyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+function clearAll() {
+document.getElementById('curlInput').value = '';
+document.getElementById('codeOutput').value = '';
+document.getElementById('status').textContent = '';
+}
+// 输入变化自动转换
+document.getElementById('curlInput').addEventListener('input', convert);
+document.getElementById('langSelect').addEventListener('change', convert);
+&lt;/script&gt;</description></item><item><title>IP 查询</title><link>https://lhao4.github.io/tools/ip/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/ip/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;input id="ipInput" type="text" placeholder="输入 IP 地址，留空则查询本机 IP" style="flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:0.9rem;outline:none;"&gt;
+&lt;button class="tool-btn" onclick="queryIP()"&gt;查询&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="queryMyIP()"&gt;查询本机 IP&lt;/button&gt;
+&lt;/div&gt;
+&lt;div id="ipResult" style="margin-top:1.2rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+.ip-card { border:1px solid var(--border); border-radius:8px; padding:1.2rem; background:var(--entry); margin-top:0.8rem; }
+.ip-row { display:flex; gap:1rem; padding:0.4rem 0; border-bottom:1px solid var(--border); font-size:0.9rem; }
+.ip-row:last-child { border-bottom:none; }
+.ip-key { color:var(--secondary); min-width:100px; }
+.ip-val { font-weight:500; word-break:break-all; }
+&lt;/style&gt;
+&lt;script&gt;
+async function queryIP() {
+const ip = document.getElementById('ipInput').value.trim();
+const result = document.getElementById('ipResult');
+result.innerHTML = '&lt;span style="color:var(--secondary)"&gt;查询中...&lt;/span&gt;';
+try {
+const url = ip ? `https://ipapi.co/${ip}/json/` : 'https://ipapi.co/json/';
+const res = await fetch(url);
+const data = await res.json();
+if (data.error) throw new Error(data.reason || '查询失败');
+result.innerHTML = `&lt;div class="ip-card"&gt;
+${row('IP 地址', data.ip)}
+${row('城市', data.city)}
+${row('地区', data.region)}
+${row('国家', data.country_name + (data.country ? ` (${data.country})` : ''))}
+${row('运营商', data.org || data.asn || '-')}
+${row('时区', data.timezone)}
+${row('经纬度', data.latitude &amp;&amp; data.longitude ? `${data.latitude}, ${data.longitude}` : '-')}
+&lt;/div&gt;`;
+} catch(e) {
+result.innerHTML = `&lt;span style="color:#e53e3e"&gt;查询失败：${e.message}&lt;/span&gt;`;
+}
+}
+function queryMyIP() {
+document.getElementById('ipInput').value = '';
+queryIP();
+}
+function row(k, v) {
+return `&lt;div class="ip-row"&gt;&lt;span class="ip-key"&gt;${k}&lt;/span&gt;&lt;span class="ip-val"&gt;${v || '-'}&lt;/span&gt;&lt;/div&gt;`;
+}
+&lt;/script&gt;</description></item><item><title>JSON 格式化</title><link>https://lhao4.github.io/tools/json/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/json/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="formatJSON()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn" onclick="compressJSON()"&gt;压缩&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyJSON()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearJSON()"&gt;清空&lt;/button&gt;
+&lt;span id="jsonStatus" style="font-size:0.85rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 JSON&lt;/div&gt;
+&lt;textarea id="jsonInput" rows="20" placeholder='{"key": "value"}'&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="jsonCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="jsonOutput" rows="20" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function formatJSON() {
+const status = document.getElementById('jsonStatus');
+try {
+const obj = JSON.parse(document.getElementById('jsonInput').value);
+document.getElementById('jsonOutput').value = JSON.stringify(obj, null, 2);
+status.style.color = '#38a169';
+status.textContent = '✓ 合法 JSON';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+document.getElementById('jsonOutput').value = '';
+}
+}
+function compressJSON() {
+const status = document.getElementById('jsonStatus');
+try {
+const obj = JSON.parse(document.getElementById('jsonInput').value);
+document.getElementById('jsonOutput').value = JSON.stringify(obj);
+status.style.color = '#38a169';
+status.textContent = '✓ 压缩成功';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+}
+}
+function clearJSON() {
+document.getElementById('jsonInput').value = '';
+document.getElementById('jsonOutput').value = '';
+document.getElementById('jsonStatus').textContent = '';
+}
+function copyJSON() {
+const val = document.getElementById('jsonOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('jsonCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>JWT 解析</title><link>https://lhao4.github.io/tools/jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/jwt/</guid><description>&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 JWT Token&lt;/div&gt;
+&lt;textarea id="jwtInput" rows="5" placeholder="粘贴 JWT Token..." oninput="parseJWT()"&gt;&lt;/textarea&gt;
+&lt;div style="margin-top:1.2rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label" style="color:#4299e1;"&gt;Header&lt;/div&gt;
+&lt;textarea id="jwtHeader" rows="8" readonly style="font-family:monospace;font-size:0.85rem;" onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label" style="color:#9f7aea;"&gt;Payload&lt;/div&gt;
+&lt;textarea id="jwtPayload" rows="8" readonly style="font-family:monospace;font-size:0.85rem;" onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div style="margin-top:1rem;"&gt;
+&lt;div class="tool-label"&gt;Signature&lt;/div&gt;
+&lt;input id="jwtSig" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div id="jwtInfo" style="margin-top:0.8rem;font-size:0.85rem;"&gt;&lt;/div&gt;
+&lt;div id="jwtErr" style="color:#e53e3e;font-size:0.85rem;margin-top:0.5rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function b64decode(str) {
+str = str.replace(/-/g, '+').replace(/_/g, '/');
+while (str.length % 4) str += '=';
+return decodeURIComponent(atob(str).split('').map(c =&gt;
+'%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+).join(''));
+}
+function parseJWT() {
+const token = document.getElementById('jwtInput').value.trim();
+const err = document.getElementById('jwtErr');
+const info = document.getElementById('jwtInfo');
+document.getElementById('jwtHeader').value = '';
+document.getElementById('jwtPayload').value = '';
+document.getElementById('jwtSig').value = '';
+err.textContent = ''; info.innerHTML = '';
+if (!token) return;
+const parts = token.split('.');
+if (parts.length !== 3) { err.textContent = '格式错误：JWT 应由三段组成（header.payload.signature）'; return; }
+try {
+const header = JSON.parse(b64decode(parts[0]));
+const payload = JSON.parse(b64decode(parts[1]));
+document.getElementById('jwtHeader').value = JSON.stringify(header, null, 2);
+document.getElementById('jwtPayload').value = JSON.stringify(payload, null, 2);
+document.getElementById('jwtSig').value = parts[2];
+const tips = [];
+if (payload.exp) {
+const exp = new Date(payload.exp * 1000);
+const expired = exp &lt; new Date();
+tips.push(`&lt;span style="color:${expired?'#e53e3e':'#38a169'}"&gt;${expired?'⚠ 已过期':'✓ 未过期'}（exp: ${exp.toLocaleString()}）&lt;/span&gt;`);
+}
+if (payload.iat) tips.push(`签发时间：${new Date(payload.iat * 1000).toLocaleString()}`);
+if (payload.sub) tips.push(`Subject: ${payload.sub}`);
+if (header.alg) tips.push(`算法：${header.alg}`);
+info.innerHTML = tips.join('　');
+} catch(e) {
+err.textContent = '解析失败：' + e.message;
+}
+}
+&lt;/script&gt;</description></item><item><title>MD5 / SHA 加密</title><link>https://lhao4.github.io/tools/hash/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/hash/</guid><description>&lt;div&gt;
+&lt;div class="tool-label"&gt;输入文本&lt;/div&gt;
+&lt;textarea id="hashInput" rows="6" placeholder="输入需要计算哈希的文本..."&gt;&lt;/textarea&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="calcAll()"&gt;计算&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="document.getElementById('hashInput').value='';clearResults()"&gt;清空&lt;/button&gt;
+&lt;/div&gt;
+&lt;div style="margin-top:1.2rem;display:flex;flex-direction:column;gap:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;MD5&lt;/div&gt;
+&lt;input id="outMD5" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;SHA-1&lt;/div&gt;
+&lt;input id="outSHA1" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;SHA-256&lt;/div&gt;
+&lt;input id="outSHA256" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;SHA-512&lt;/div&gt;
+&lt;input id="outSHA512" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;word-break:break-all;"&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+function clearResults() {
+['outMD5','outSHA1','outSHA256','outSHA512'].forEach(id =&gt; document.getElementById(id).value = '');
+}
+function calcAll() {
+const text = document.getElementById('hashInput').value;
+document.getElementById('outMD5').value = CryptoJS.MD5(text).toString();
+document.getElementById('outSHA1').value = CryptoJS.SHA1(text).toString();
+document.getElementById('outSHA256').value = CryptoJS.SHA256(text).toString();
+document.getElementById('outSHA512').value = CryptoJS.SHA512(text).toString();
+}
+&lt;/script&gt;</description></item><item><title>SQL 格式化</title><link>https://lhao4.github.io/tools/sql/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/sql/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="formatSQL()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn" onclick="compressSQL()"&gt;压缩&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copySQL()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearSQL()"&gt;清空&lt;/button&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 SQL&lt;/div&gt;
+&lt;textarea id="sqlInput" rows="20" placeholder="SELECT * FROM users WHERE id = 1;"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="sqlCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="sqlOutput" rows="20" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/15.4.2/sql-formatter.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+function formatSQL() {
+const input = document.getElementById('sqlInput').value;
+try {
+document.getElementById('sqlOutput').value = sqlFormatter.format(input, { language: 'sql', tabWidth: 2 });
+} catch(e) {
+document.getElementById('sqlOutput').value = '格式化失败: ' + e.message;
+}
+}
+function compressSQL() {
+const input = document.getElementById('sqlInput').value;
+document.getElementById('sqlOutput').value = input.replace(/\s+/g, ' ').trim();
+}
+function clearSQL() {
+document.getElementById('sqlInput').value = '';
+document.getElementById('sqlOutput').value = '';
+}
+function copySQL() {
+const val = document.getElementById('sqlOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('sqlCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>SVG 编辑优化</title><link>https://lhao4.github.io/tools/svg/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/svg/</guid><description>&lt;div&gt;
+&lt;!-- 操作栏 --&gt;
+&lt;div class="tool-row" style="flex-wrap:wrap;gap:0.5rem;"&gt;
+&lt;button class="tool-btn" onclick="optimizeSVG()"&gt;优化压缩&lt;/button&gt;
+&lt;button class="tool-btn" onclick="formatSVG()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyOutput()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearAll()"&gt;清空&lt;/button&gt;
+&lt;label style="display:flex;align-items:center;gap:0.3rem;font-size:0.85rem;cursor:pointer;"&gt;
+&lt;input type="checkbox" id="rmComments" checked&gt; 移除注释
+&lt;/label&gt;
+&lt;label style="display:flex;align-items:center;gap:0.3rem;font-size:0.85rem;cursor:pointer;"&gt;
+&lt;input type="checkbox" id="rmMetadata" checked&gt; 移除 metadata/title/desc
+&lt;/label&gt;
+&lt;label style="display:flex;align-items:center;gap:0.3rem;font-size:0.85rem;cursor:pointer;"&gt;
+&lt;input type="checkbox" id="rmXmlDecl" checked&gt; 移除 XML 声明
+&lt;/label&gt;
+&lt;/div&gt;
+&lt;!-- 尺寸信息 --&gt;
+&lt;div id="sizeInfo" style="font-size:0.82rem;color:var(--secondary);margin:0.4rem 0 0.6rem;"&gt;&lt;/div&gt;
+&lt;!-- 双栏：左输入右输出 --&gt;
+&lt;div class="tool-cols"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 SVG&lt;/div&gt;
+&lt;textarea id="svgInput" rows="18" placeholder="粘贴 SVG 代码..." oninput="onInputChange()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;!-- Tab 切换 --&gt;
+&lt;div style="display:flex;gap:0;margin-bottom:0.5rem;border-bottom:1px solid var(--border);"&gt;
+&lt;button class="svg-tab active" id="tab-code" onclick="switchTab('code')"&gt;优化结果&lt;/button&gt;
+&lt;button class="svg-tab" id="tab-preview" onclick="switchTab('preview')"&gt;预览&lt;/button&gt;
+&lt;/div&gt;
+&lt;div id="panel-code"&gt;
+&lt;textarea id="svgOutput" rows="17" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div id="panel-preview" style="display:none;"&gt;
+&lt;div id="svgPreview" style="
+min-height:300px;border:1px solid var(--border);border-radius:6px;
+background:repeating-conic-gradient(#ccc 0% 25%, transparent 0% 50%) 0 0/20px 20px;
+display:flex;align-items:center;justify-content:center;overflow:auto;padding:1rem;"&gt;
+&lt;span style="color:var(--secondary);font-size:0.9rem;"&gt;预览区域&lt;/span&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;span id="copyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+.svg-tab {
+padding: 0.3rem 1rem;
+border: none;
+background: transparent;
+color: var(--secondary);
+cursor: pointer;
+font-size: 0.9rem;
+border-bottom: 2px solid transparent;
+margin-bottom: -1px;
+}
+.svg-tab.active {
+color: var(--primary);
+border-bottom-color: var(--primary);
+font-weight: 600;
+}
+&lt;/style&gt;
+&lt;script&gt;
+// ── Tab 切换 ──────────────────────────────────────────────────
+function switchTab(name) {
+document.getElementById('panel-code').style.display = name === 'code' ? '' : 'none';
+document.getElementById('panel-preview').style.display = name === 'preview' ? '' : 'none';
+document.getElementById('tab-code').classList.toggle('active', name === 'code');
+document.getElementById('tab-preview').classList.toggle('active', name === 'preview');
+if (name === 'preview') renderPreview();
+}
+// ── 渲染预览 ─────────────────────────────────────────────────
+function renderPreview() {
+const src = document.getElementById('svgOutput').value ||
+document.getElementById('svgInput').value;
+const box = document.getElementById('svgPreview');
+if (!src.trim()) { box.innerHTML = '&lt;span style="color:var(--secondary)"&gt;暂无内容&lt;/span&gt;'; return; }
+// 安全渲染：只允许 SVG 标签
+if (!/&lt;svg[\s&gt;]/i.test(src)) {
+box.innerHTML = '&lt;span style="color:#e53e3e"&gt;未检测到有效 SVG&lt;/span&gt;';
+return;
+}
+box.innerHTML = src;
+// 让 SVG 自适应容器
+const svgEl = box.querySelector('svg');
+if (svgEl) {
+svgEl.style.maxWidth = '100%';
+svgEl.style.maxHeight = '400px';
+}
+}
+// ── XML 格式化（纯 JS 实现）──────────────────────────────────
+function formatXML(xml) {
+let indent = 0;
+const tab = ' ';
+return xml
+.replace(/&gt;\s*&lt;/g, '&gt;\n&lt;')
+.split('\n')
+.map(line =&gt; {
+line = line.trim();
+if (!line) return '';
+if (/^&lt;\//.test(line)) indent--;
+const result = tab.repeat(Math.max(0, indent)) + line;
+if (/^&lt;[^/?!]/.test(line) &amp;&amp; !/\/&gt;$/.test(line) &amp;&amp; !/&lt;\//.test(line)) indent++;
+return result;
+})
+.filter(Boolean)
+.join('\n');
+}
+// ── SVG 优化（纯 JS）─────────────────────────────────────────
+function doOptimize(svg) {
+const rmComments = document.getElementById('rmComments').checked;
+const rmMetadata = document.getElementById('rmMetadata').checked;
+const rmXmlDecl = document.getElementById('rmXmlDecl').checked;
+// 移除 XML 声明
+if (rmXmlDecl) svg = svg.replace(/&lt;\?xml[^?]*\?&gt;\s*/gi, '');
+// 移除注释
+if (rmComments) svg = svg.replace(/&lt;!--[\s\S]*?--&gt;/g, '');
+// 移除 metadata / title / desc
+if (rmMetadata) {
+svg = svg.replace(/&lt;metadata[\s\S]*?&lt;\/metadata&gt;/gi, '');
+svg = svg.replace(/&lt;title[\s\S]*?&lt;\/title&gt;/gi, '');
+svg = svg.replace(/&lt;desc[\s\S]*?&lt;\/desc&gt;/gi, '');
+}
+// 移除多余空行和首尾空白
+svg = svg.replace(/^\s+/gm, '').replace(/\s+$/gm, '').replace(/\n{2,}/g, '\n');
+// 压缩数字：50.000→50，1.500→1.5，0.5→.5
+svg = svg.replace(/(\d+\.\d*[1-9])0+/g, '$1'); // 1.500 → 1.5
+svg = svg.replace(/(\d+)\.0+(?=[^\d]|$)/g, '$1'); // 50.000 → 50
+svg = svg.replace(/(?&lt;!\d)0(\.\d+)/g, '$1'); // 0.5 → .5
+// 压缩为单行（移除标签间空白）
+svg = svg.replace(/&gt;\s+&lt;/g, '&gt;&lt;').replace(/\s{2,}/g, ' ').trim();
+return svg;
+}
+// ── 按钮操作 ─────────────────────────────────────────────────
+function optimizeSVG() {
+const input = document.getElementById('svgInput').value.trim();
+if (!input) return;
+try {
+const result = doOptimize(input);
+document.getElementById('svgOutput').value = result;
+showSizeInfo(input, result);
+} catch(e) {
+document.getElementById('svgOutput').value = '错误：' + e.message;
+}
+}
+function formatSVG() {
+const input = document.getElementById('svgInput').value.trim();
+if (!input) return;
+try {
+const result = formatXML(input);
+document.getElementById('svgOutput').value = result;
+showSizeInfo(input, result);
+} catch(e) {
+document.getElementById('svgOutput').value = '错误：' + e.message;
+}
+}
+function showSizeInfo(before, after) {
+const b = new Blob([before]).size;
+const a = new Blob([after]).size;
+const pct = ((b - a) / b * 100).toFixed(1);
+const color = a &lt; b ? '#38a169' : 'var(--secondary)';
+document.getElementById('sizeInfo').innerHTML =
+`原始：&lt;b&gt;${fmt(b)}&lt;/b&gt; &amp;nbsp;→&amp;nbsp; 结果：&lt;b&gt;${fmt(a)}&lt;/b&gt; &amp;nbsp;` +
+`&lt;span style="color:${color}"&gt;${a &lt; b ? '↓ 减少 ' + pct + '%' : '大小无变化'}&lt;/span&gt;`;
+}
+function fmt(bytes) {
+return bytes &lt; 1024 ? bytes + ' B' : (bytes / 1024).toFixed(1) + ' KB';
+}
+function copyOutput() {
+const val = document.getElementById('svgOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('copyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+function clearAll() {
+document.getElementById('svgInput').value = '';
+document.getElementById('svgOutput').value = '';
+document.getElementById('sizeInfo').textContent = '';
+document.getElementById('svgPreview').innerHTML =
+'&lt;span style="color:var(--secondary);font-size:0.9rem;"&gt;预览区域&lt;/span&gt;';
+}
+function onInputChange() {
+// 实时更新预览（如果预览 tab 激活）
+if (document.getElementById('panel-preview').style.display !== 'none') {
+renderPreview();
+}
+}
+&lt;/script&gt;</description></item><item><title>URL 编解码</title><link>https://lhao4.github.io/tools/url/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/url/</guid><description>&lt;div class="tool-cols"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入&lt;/div&gt;
+&lt;textarea id="urlInput" rows="10" placeholder="输入需要编码或解码的内容..."&gt;&lt;/textarea&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="urlEncode()"&gt;编码&lt;/button&gt;
+&lt;button class="tool-btn" onclick="urlDecode()"&gt;解码&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="urlSwap()"&gt;⇄ 互换&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="urlClear()"&gt;清空&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="urlCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="urlOutput" rows="10" placeholder="结果将显示在这里..." readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyUrl()"&gt;复制结果&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id="urlErr" style="color:#e53e3e;font-size:0.85rem;margin-top:0.5rem;"&gt;&lt;/div&gt;
+&lt;script&gt;
+function urlEncode() {
+document.getElementById('urlErr').textContent = '';
+document.getElementById('urlOutput').value = encodeURIComponent(document.getElementById('urlInput').value);
+}
+function urlDecode() {
+try {
+document.getElementById('urlErr').textContent = '';
+document.getElementById('urlOutput').value = decodeURIComponent(document.getElementById('urlInput').value);
+} catch(e) {
+document.getElementById('urlErr').textContent = '解码失败，请检查输入是否为有效的编码字符串';
+}
+}
+function urlSwap() {
+const a = document.getElementById('urlInput'), b = document.getElementById('urlOutput');
+[a.value, b.value] = [b.value, a.value];
+}
+function urlClear() {
+document.getElementById('urlInput').value = '';
+document.getElementById('urlOutput').value = '';
+document.getElementById('urlErr').textContent = '';
+}
+function copyUrl() {
+const val = document.getElementById('urlOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('urlCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>UUID 生成</title><link>https://lhao4.github.io/tools/uuid/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/uuid/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;label style="font-size:0.9rem;"&gt;生成数量：&lt;/label&gt;
+&lt;input id="uuidCount" type="number" value="10" min="1" max="100" style="width:80px;padding:0.4rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;"&gt;
+&lt;label style="font-size:0.9rem;margin-left:0.5rem;"&gt;
+&lt;input type="checkbox" id="uuidUpper"&gt; 大写
+&lt;/label&gt;
+&lt;label style="font-size:0.9rem;margin-left:0.5rem;"&gt;
+&lt;input type="checkbox" id="uuidNoDash"&gt; 去除连字符
+&lt;/label&gt;
+&lt;button class="tool-btn" onclick="genUUIDs()"&gt;生成&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyAll()"&gt;复制全部&lt;/button&gt;
+&lt;/div&gt;
+&lt;div class="tool-label" style="margin-top:0.8rem;"&gt;结果 &lt;span id="uuidCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="uuidOutput" rows="16" readonly onclick="this.select()" style="font-family:monospace;font-size:0.85rem;"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function uuidv4() {
+return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =&gt;
+(c ^ crypto.getRandomValues(new Uint8Array(1))[0] &amp; 15 &gt;&gt; c / 4).toString(16)
+);
+}
+function genUUIDs() {
+const count = Math.min(100, Math.max(1, parseInt(document.getElementById('uuidCount').value) || 1));
+const upper = document.getElementById('uuidUpper').checked;
+const noDash = document.getElementById('uuidNoDash').checked;
+const results = [];
+for (let i = 0; i &lt; count; i++) {
+let id = uuidv4();
+if (noDash) id = id.replace(/-/g, '');
+if (upper) id = id.toUpperCase();
+results.push(id);
+}
+document.getElementById('uuidOutput').value = results.join('\n');
+}
+function copyAll() {
+const val = document.getElementById('uuidOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('uuidCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+genUUIDs();
+&lt;/script&gt;</description></item><item><title>XML 格式化</title><link>https://lhao4.github.io/tools/xml/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/xml/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="formatXML()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn" onclick="compressXML()"&gt;压缩&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyXML()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearXML()"&gt;清空&lt;/button&gt;
+&lt;span id="xmlStatus" style="font-size:0.85rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 XML&lt;/div&gt;
+&lt;textarea id="xmlInput" rows="20" placeholder="&lt;root&gt;&lt;item&gt;value&lt;/item&gt;&lt;/root&gt;"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="xmlCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="xmlOutput" rows="20" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function formatXML() {
+const status = document.getElementById('xmlStatus');
+const input = document.getElementById('xmlInput').value.trim();
+try {
+const parser = new DOMParser();
+const doc = parser.parseFromString(input, 'application/xml');
+const err = doc.querySelector('parsererror');
+if (err) throw new Error(err.textContent.split('\n')[0]);
+document.getElementById('xmlOutput').value = formatXMLStr(input);
+status.style.color = '#38a169';
+status.textContent = '✓ 合法 XML';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+document.getElementById('xmlOutput').value = '';
+}
+}
+function formatXMLStr(xml) {
+let formatted = '', indent = '';
+xml.split(/&gt;\s*&lt;/).forEach(node =&gt; {
+if (node.match(/^\/\w/)) indent = indent.slice(2);
+formatted += indent + '&lt;' + node + '&gt;\n';
+if (node.match(/^&lt;?\w[^/]*[^/]$/) &amp;&amp; !node.startsWith('?')) indent += ' ';
+});
+return formatted.slice(1, -2);
+}
+function compressXML() {
+const status = document.getElementById('xmlStatus');
+const input = document.getElementById('xmlInput').value.trim();
+try {
+const parser = new DOMParser();
+const doc = parser.parseFromString(input, 'application/xml');
+if (doc.querySelector('parsererror')) throw new Error('无效 XML');
+document.getElementById('xmlOutput').value = input.replace(/&gt;\s+&lt;/g, '&gt;&lt;').replace(/\s+/g, ' ').trim();
+status.style.color = '#38a169';
+status.textContent = '✓ 压缩成功';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+}
+}
+function clearXML() {
+document.getElementById('xmlInput').value = '';
+document.getElementById('xmlOutput').value = '';
+document.getElementById('xmlStatus').textContent = '';
+}
+function copyXML() {
+const val = document.getElementById('xmlOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('xmlCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>时间戳转换</title><link>https://lhao4.github.io/tools/timestamp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/timestamp/</guid><description>&lt;div&gt;
+&lt;div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;"&gt;
+&lt;div&gt;
+&lt;h3 style="margin-top:0;font-size:1rem;"&gt;时间戳 → 日期&lt;/h3&gt;
+&lt;div class="tool-label"&gt;时间戳（秒或毫秒）&lt;/div&gt;
+&lt;div class="tool-row"&gt;
+&lt;input id="tsInput" type="text" placeholder="如：1700000000" style="flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:0.9rem;outline:none;"&gt;
+&lt;button class="tool-btn" onclick="ts2date()"&gt;转换&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="useNow()"&gt;当前&lt;/button&gt;
+&lt;/div&gt;
+&lt;div id="tsResult" style="margin-top:0.8rem;font-size:0.9rem;line-height:2;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;&amp;lt;div&amp;gt;
+&amp;lt;h3 style=&amp;quot;margin-top:0;font-size:1rem;&amp;quot;&amp;gt;日期 → 时间戳&amp;lt;/h3&amp;gt;
+&amp;lt;div class=&amp;quot;tool-label&amp;quot;&amp;gt;日期时间&amp;lt;/div&amp;gt;
+&amp;lt;div class=&amp;quot;tool-row&amp;quot;&amp;gt;
+&amp;lt;input id=&amp;quot;dateInput&amp;quot; type=&amp;quot;datetime-local&amp;quot; style=&amp;quot;flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:0.9rem;outline:none;&amp;quot;&amp;gt;
+&amp;lt;button class=&amp;quot;tool-btn&amp;quot; onclick=&amp;quot;date2ts()&amp;quot;&amp;gt;转换&amp;lt;/button&amp;gt;
+&amp;lt;/div&amp;gt;
+&amp;lt;div id=&amp;quot;dateResult&amp;quot; style=&amp;quot;margin-top:0.8rem;font-size:0.9rem;line-height:2;&amp;quot;&amp;gt;&amp;lt;/div&amp;gt;
+&amp;lt;/div&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div style="margin-top:2rem;padding:1rem;border:1px solid var(--border);border-radius:8px;background:var(--entry);"&gt;
+&lt;div style="font-size:0.85rem;color:var(--secondary);margin-bottom:0.5rem;"&gt;当前时间&lt;/div&gt;
+&lt;div id="nowDisplay" style="font-size:1.1rem;font-family:monospace;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function pad(n) { return String(n).padStart(2,'0'); }
+function fmt(d) {
+return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function ts2date() {
+let ts = document.getElementById('tsInput').value.trim();
+if (!ts) return;
+ts = parseInt(ts);
+if (ts &lt; 1e10) ts *= 1000;
+const d = new Date(ts);
+if (isNaN(d)) { document.getElementById('tsResult').innerHTML = '&lt;span style="color:#e53e3e"&gt;无效时间戳&lt;/span&gt;'; return; }
+document.getElementById('tsResult').innerHTML =
+`本地时间：&lt;strong&gt;${fmt(d)}&lt;/strong&gt;&lt;br&gt;UTC 时间：&lt;strong&gt;${d.toUTCString()}&lt;/strong&gt;&lt;br&gt;ISO 8601：&lt;strong&gt;${d.toISOString()}&lt;/strong&gt;`;
+}
+function date2ts() {
+const val = document.getElementById('dateInput').value;
+if (!val) return;
+const d = new Date(val);
+document.getElementById('dateResult').innerHTML =
+`秒级时间戳：&lt;strong&gt;${Math.floor(d.getTime()/1000)}&lt;/strong&gt;&lt;br&gt;毫秒时间戳：&lt;strong&gt;${d.getTime()}&lt;/strong&gt;`;
+}
+function useNow() {
+document.getElementById('tsInput').value = Math.floor(Date.now()/1000);
+ts2date();
+}
+function updateNow() {
+const d = new Date();
+document.getElementById('nowDisplay').innerHTML =
+`${fmt(d)}&amp;emsp;秒级：${Math.floor(d.getTime()/1000)}&amp;emsp;毫秒：${d.getTime()}`;
+}
+updateNow();
+setInterval(updateNow, 1000);
+// 初始化 datetime-local 为当前时间
+const now = new Date();
+now.setSeconds(0,0);
+document.getElementById('dateInput').value = now.toISOString().slice(0,16);
+&lt;/script&gt;</description></item><item><title>正则测试</title><link>https://lhao4.github.io/tools/regex/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/regex/</guid><description>&lt;div&gt;
+&lt;div style="display:grid;grid-template-columns:1fr auto auto;gap:0.6rem;align-items:center;margin-bottom:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;正则表达式&lt;/div&gt;
+&lt;div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--code-bg);"&gt;
+&lt;span style="padding:0 0.5rem;color:var(--secondary);font-size:1.2rem;font-family:monospace;"&gt;/&lt;/span&gt;
+&lt;input id="regexPattern" type="text" placeholder="输入正则..." oninput="testRegex()" style="flex:1;border:none;background:transparent;color:inherit;padding:0.5rem 0;font-family:monospace;font-size:0.95rem;outline:none;"&gt;
+&lt;span style="padding:0 0.5rem;color:var(--secondary);font-size:1.2rem;font-family:monospace;"&gt;/&lt;/span&gt;
+&lt;input id="regexFlags" type="text" value="g" placeholder="flags" oninput="testRegex()" style="width:60px;border:none;border-left:1px solid var(--border);background:transparent;color:inherit;padding:0.5rem;font-family:monospace;outline:none;"&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="tool-label"&gt;测试文本&lt;/div&gt;
+&lt;textarea id="regexText" rows="8" placeholder="输入要测试的文本..." oninput="testRegex()"&gt;&lt;/textarea&gt;
+&lt;div class="tool-row" style="margin-top:0.8rem;"&gt;
+&lt;span id="regexStatus" style="font-size:0.9rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-label" style="margin-top:0.8rem;"&gt;匹配结果高亮&lt;/div&gt;
+&lt;div id="regexHighlight" style="min-height:80px;padding:0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);font-family:monospace;font-size:0.9rem;white-space:pre-wrap;word-break:break-all;line-height:1.6;"&gt;&lt;/div&gt;
+&lt;div class="tool-label" style="margin-top:0.8rem;"&gt;匹配详情&lt;/div&gt;
+&lt;div id="regexMatches" style="font-family:monospace;font-size:0.85rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+.regex-match { background: #f6e05e; color: #1a1a1a; border-radius: 2px; }
+.dark .regex-match, [data-theme=dark] .regex-match { background: #d69e2e; color: #1a1a1a; }
+.match-item { padding:0.3rem 0.6rem; margin:0.2rem 0; border:1px solid var(--border); border-radius:4px; background:var(--entry); }
+&lt;/style&gt;
+&lt;script&gt;
+function testRegex() {
+const pattern = document.getElementById('regexPattern').value;
+const flags = document.getElementById('regexFlags').value;
+const text = document.getElementById('regexText').value;
+const status = document.getElementById('regexStatus');
+const highlight = document.getElementById('regexHighlight');
+const matchesDiv = document.getElementById('regexMatches');
+if (!pattern) {
+highlight.textContent = text;
+matchesDiv.innerHTML = '';
+status.textContent = '';
+return;
+}
+try {
+const regex = new RegExp(pattern, flags.replace(/[^gimsuy]/g, ''));
+const matches = [...text.matchAll(new RegExp(pattern, flags.includes('g') ? flags : flags + 'g'))];
+status.style.color = '#38a169';
+status.textContent = `✓ 共匹配 ${matches.length} 处`;
+// highlight
+let html = '', last = 0;
+for (const m of matches) {
+html += escHtml(text.slice(last, m.index));
+html += `&lt;mark class="regex-match"&gt;${escHtml(m[0])}&lt;/mark&gt;`;
+last = m.index + m[0].length;
+}
+html += escHtml(text.slice(last));
+highlight.innerHTML = html;
+// details
+matchesDiv.innerHTML = matches.slice(0, 50).map((m, i) =&gt;
+`&lt;div class="match-item"&gt;[${i+1}] 位置 ${m.index}：&lt;strong&gt;${escHtml(m[0])}&lt;/strong&gt;${m.length &gt; 1 ? '　分组：' + m.slice(1).map((g,j)=&gt;`$${j+1}=${escHtml(g??'undefined')}`).join(', ') : ''}&lt;/div&gt;`
+).join('') + (matches.length &gt; 50 ? `&lt;div style="color:var(--secondary);font-size:0.8rem;"&gt;仅显示前 50 条&lt;/div&gt;` : '');
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+highlight.textContent = text;
+matchesDiv.innerHTML = '';
+}
+}
+function escHtml(s) {
+return (s||'').replace(/&amp;/g,'&amp;amp;').replace(/&lt;/g,'&amp;lt;').replace(/&gt;/g,'&amp;gt;');
+}
+&lt;/script&gt;</description></item><item><title>进制转换</title><link>https://lhao4.github.io/tools/base/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/base/</guid><description>&lt;div&gt;
+&lt;div class="tool-label"&gt;输入数值&lt;/div&gt;
+&lt;div class="tool-row"&gt;
+&lt;input id="inputVal" type="text" placeholder="输入数字..." style="flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:1rem;outline:none;" oninput="convert(this.value, document.getElementById('fromBase').value)"&gt;
+&lt;select id="fromBase" onchange="convert(document.getElementById('inputVal').value, this.value)" style="padding:0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;"&gt;
+&lt;option value="2"&gt;二进制&lt;/option&gt;
+&lt;option value="8"&gt;八进制&lt;/option&gt;
+&lt;option value="10" selected&gt;十进制&lt;/option&gt;
+&lt;option value="16"&gt;十六进制&lt;/option&gt;
+&lt;/select&gt;
+&lt;/div&gt;
+&lt;div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:1rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;二进制 (Base 2)&lt;/div&gt;
+&lt;input id="out2" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;八进制 (Base 8)&lt;/div&gt;
+&lt;input id="out8" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;十进制 (Base 10)&lt;/div&gt;
+&lt;input id="out10" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;十六进制 (Base 16)&lt;/div&gt;
+&lt;input id="out16" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id="errMsg" style="color:#e53e3e;font-size:0.85rem;margin-top:0.5rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function convert(val, base) {
+const err = document.getElementById('errMsg');
+['out2','out8','out10','out16'].forEach(id =&gt; document.getElementById(id).value = '');
+if (!val.trim()) { err.textContent = ''; return; }
+try {
+const decimal = parseInt(val.trim(), parseInt(base));
+if (isNaN(decimal)) throw new Error('无效输入');
+err.textContent = '';
+document.getElementById('out2').value = decimal.toString(2);
+document.getElementById('out8').value = decimal.toString(8);
+document.getElementById('out10').value = decimal.toString(10);
+document.getElementById('out16').value = decimal.toString(16).toUpperCase();
+} catch(e) {
+err.textContent = '输入格式有误，请检查';
+}
+}
+&lt;/script&gt;</description></item></channel></rss>

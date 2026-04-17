@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>Hugo on HaoNest</title><link>https://lhao4.github.io/tags/hugo/</link><description>Recent content in Hugo on HaoNest</description><generator>Hugo</generator><language>zh-cn</language><lastBuildDate>Mon, 01 Jan 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://lhao4.github.io/tags/hugo/index.xml" rel="self" type="application/rss+xml"/><item><title>从零搭建 HaoNest：个人博客完整搭建与部署记录</title><link>https://lhao4.github.io/posts/hello-world/</link><pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/hello-world/</guid><description>&lt;p&gt;本文记录 HaoNest 个人站点从零到上线的完整过程，包含环境搭建、主题配置、功能开发、自动部署等所有步骤。&lt;/p&gt;
+&lt;h2 id="站点介绍"&gt;站点介绍&lt;/h2&gt;
+&lt;p&gt;HaoNest 是一个集三大功能于一体的个人站点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;博客&lt;/strong&gt;：Markdown 写作，支持分类、标签、搜索、评论&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;导航&lt;/strong&gt;：收藏常用网站，按类别整理&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;工具&lt;/strong&gt;：内置多种开发工具，无需安装，即开即用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;技术选型如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;模块&lt;/th&gt;
+&lt;th&gt;选择&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;静态站点生成器&lt;/td&gt;
+&lt;td&gt;Hugo&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;主题&lt;/td&gt;
+&lt;td&gt;PaperMod&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;托管&lt;/td&gt;
+&lt;td&gt;GitHub Pages&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;评论&lt;/td&gt;
+&lt;td&gt;Giscus&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;部署&lt;/td&gt;
+&lt;td&gt;GitHub Actions&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="一环境准备"&gt;一、环境准备&lt;/h2&gt;
+&lt;h3 id="11-安装必要工具"&gt;1.1 安装必要工具&lt;/h3&gt;
+&lt;p&gt;需要提前安装以下工具：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Git&lt;/strong&gt;：版本管理&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;GitHub CLI&lt;/strong&gt;：命令行操作 GitHub&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Node.js&lt;/strong&gt;：部分工具依赖&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Hugo Extended&lt;/strong&gt;：站点生成器&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;安装 Hugo（Windows）：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;winget install Hugo.Hugo.Extended
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;验证安装：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;hugo version
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;输出类似 &lt;code&gt;hugo v0.159.1+extended&lt;/code&gt; 即为成功。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="二创建-hugo-项目"&gt;二、创建 Hugo 项目&lt;/h2&gt;
+&lt;h3 id="21-初始化项目"&gt;2.1 初始化项目&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;hugo new site . --force
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;git init
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="22-安装-papermod-主题"&gt;2.2 安装 PaperMod 主题&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;git submodule add --depth&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="m"&gt;1&lt;/span&gt; https://github.com/adityatelange/hugo-PaperMod.git themes/PaperMod
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="23-配置-hugotoml"&gt;2.3 配置 hugo.toml&lt;/h3&gt;
+&lt;p&gt;删除默认的 &lt;code&gt;hugo.toml&lt;/code&gt;，新建完整配置：&lt;/p&gt;</description></item></channel></rss>

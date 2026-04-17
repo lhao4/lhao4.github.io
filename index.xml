@@ -1,0 +1,2183 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>HaoNest</title><link>https://lhao4.github.io/</link><description>Recent content on HaoNest</description><generator>Hugo</generator><language>zh-cn</language><lastBuildDate>Sun, 01 Mar 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://lhao4.github.io/index.xml" rel="self" type="application/rss+xml"/><item><title>使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案</title><link>https://lhao4.github.io/posts/linux/ssh-codex-403/</link><pubDate>Sun, 01 Mar 2026 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/linux/ssh-codex-403/</guid><description>&lt;h1 id="一问题背景"&gt;一、问题背景&lt;/h1&gt;
+&lt;p&gt;你的目标是：&lt;/p&gt;
+&lt;p&gt;在 &lt;strong&gt;Windows + VSCode + Remote SSH + 远程 Linux 服务器&lt;/strong&gt; 环境中让远程服务器能够正常使用 &lt;strong&gt;Codex / OpenAI API&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;但遇到了两个问题：&lt;/p&gt;
+&lt;p&gt;1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 &lt;code&gt;localhost&lt;/code&gt; 失败（ERR_CONNECTION_REFUSED）&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/linux/ssh-codex-403/images/img1.png"&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/linux/ssh-codex-403/images/img2.png"&gt;&lt;/p&gt;
+&lt;p&gt;解决思路：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用 &lt;strong&gt;SSH 反向隧道&lt;/strong&gt;让远程服务器走本地代理&lt;/li&gt;
+&lt;li&gt;用 &lt;strong&gt;VSCode Port Forward&lt;/strong&gt;解决 OAuth 回调&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h1 id="二本机开启代理"&gt;二、本机开启代理&lt;/h1&gt;
+&lt;p&gt;先确保你本机有可用代理。&lt;/p&gt;
+&lt;p&gt;你的代理端口是：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;127.0.0.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;验证代理是否可用：&lt;/p&gt;
+&lt;p&gt;PowerShell：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;$env:HTTP_PROXY=&amp;#34;http://127.0.0.1:9674&amp;#34;
+$env:HTTPS_PROXY=&amp;#34;http://127.0.0.1:9674&amp;#34;
+curl.exe -I https://api.openai.com
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;如果返回：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;HTTP/1.1 200 Connection established
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;说明代理正常。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="三建立-ssh-反向代理隧道"&gt;三、建立 SSH 反向代理隧道&lt;/h1&gt;
+&lt;p&gt;目的：&lt;/p&gt;
+&lt;p&gt;让远程服务器的流量通过 &lt;strong&gt;你的本地代理&lt;/strong&gt; 出网。&lt;/p&gt;
+&lt;p&gt;执行：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;含义：&lt;/p&gt;</description></item><item><title>WSL2 在开启 Windows 代理情况下安装 Codex CLI 的完整步骤</title><link>https://lhao4.github.io/posts/linux/wsl2-proxy-codex/</link><pubDate>Sun, 01 Feb 2026 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/linux/wsl2-proxy-codex/</guid><description>&lt;p&gt;本文档提供两种方法在 WSL2 中使用 Windows 代理，并完成 Codex CLI 安装与登录。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="方法一通过-windows-主机-ip-使用代理适用于默认-nat-网络"&gt;方法一：通过 Windows 主机 IP 使用代理（适用于默认 NAT 网络）&lt;/h1&gt;
+&lt;h2 id="步骤一确认-windows-代理端口"&gt;步骤一：确认 Windows 代理端口&lt;/h2&gt;
+&lt;p&gt;在 Windows PowerShell 或 CMD 执行&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;reg query &amp;#34;HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings&amp;#34; /v ProxyServer
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输出示例&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ProxyServer REG_SZ 127.0.0.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;说明 Windows 系统代理地址为&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;127.0.0.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="步骤二获取-windows-在-wsl-网络中的-ip"&gt;步骤二：获取 Windows 在 WSL 网络中的 IP&lt;/h2&gt;
+&lt;p&gt;进入 WSL 终端执行&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;grep nameserver /etc/resolv.conf
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输出示例&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;nameserver 172.20.128.1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;其中&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;172.20.128.1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;为 Windows 主机在 WSL 网络中的地址。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="步骤三在-wsl-设置代理"&gt;步骤三：在 WSL 设置代理&lt;/h2&gt;
+&lt;p&gt;在 WSL 终端执行&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;export http_proxy=http://172.20.128.1:9674
+export https_proxy=http://172.20.128.1:9674
+export HTTP_PROXY=http://172.20.128.1:9674
+export HTTPS_PROXY=http://172.20.128.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="步骤四测试代理"&gt;步骤四：测试代理&lt;/h2&gt;
+&lt;p&gt;执行&lt;/p&gt;</description></item><item><title>从零开始：现代编译器优化、性能优化与二进制优化的全面详解</title><link>https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/compiler-optimization/</link><pubDate>Thu, 25 Dec 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/compiler-optimization/</guid><description>&lt;h3 id="第一部分硬件瓶颈与操作系统底层原理为什么优化必不可少"&gt;第一部分：硬件瓶颈与操作系统底层原理——为什么优化必不可少&lt;/h3&gt;
+&lt;p&gt;现代优化源于CPU与内存的“速度鸿沟”（内存延迟数百周期）。操作系统（Linux/Android/iOS）管理虚拟内存、二进制加载，进一步放大瓶颈。&lt;/p&gt;
+&lt;h4 id="1-cpu体系结构基础与前端瓶颈"&gt;1. CPU体系结构基础与前端瓶颈&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;流水线（Pipeline）&lt;/strong&gt;：CPU分取指（Fetch）、解码（Decode）、执行（Execute）、访存（Memory）、写回（Writeback）。现代CPU超长流水线（Intel 14-19级，Arm 8-15级）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;乱序执行（Out-of-Order Execution）&lt;/strong&gt;：CPU重排指令隐藏延迟，但前端（取指/解码）仍是瓶颈。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;指令缓存（L1i Cache）&lt;/strong&gt;：x86/Intel典型32-64KB/核，Arm AArch64类似32KB。过去20年容量几乎不变（Moore定律偏向核数而非缓存）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;缓存缺失（Instruction Cache Miss）&lt;/strong&gt;：代码不局部，CPU等主存（数百周期罚时）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;例子&lt;/strong&gt;：大型二进制（&amp;gt;100MB）热代码散布，L1i命中率&amp;lt;90%，IPC降30%。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;分支预测（Branch Prediction）&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;动态分支（if/loop）占20-30%。预测器（TAGE/SC等）猜错罚10-20周期。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;x86 CISC指令长度可变（1-15字节），预测更难；Arm RISC固定4字节，更友好。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;TLB（Translation Lookaside Buffer）&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;虚拟到物理地址翻译缓冲。iTLB典型48-64条目。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;代码跨多4KB页，TLB Miss慢（页表行走）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;Huge Pages（2MB/1GB）&lt;/strong&gt;：减TLB压力，BOLT/Propeller常选性用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;指令预取（Instruction Prefetcher）&lt;/strong&gt;：硬件提前取下一页，布局乱失效。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h4 id="2-操作系统视角二进制加载与执行"&gt;2. 操作系统视角：二进制加载与执行&lt;/h4&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ELF（Linux/AArch64）、Mach-O（iOS）、PE（Windows）格式&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;段（.text代码、.data数据）、符号表、重定位。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;加载时OS映射.text到虚拟内存，按需分页（Demand Paging）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;缺页故障（Page Fault）&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;移动端关键：App启动冷代码未载入，主存/闪存取慢（ms级）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Android/iOS Art/Dalvik进一步JIT/AOT放大。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;虚拟内存与ASLR（Address Space Layout Randomization）&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;安全随机化布局，破坏静态优化。BOLT等后链工具重排后保持兼容。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;x86 vs ARM/AArch64差异&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;x86（CISC）：指令密，分支多，缓存压力大；iTLB小。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;ARM/AArch64（RISC）：固定长指令，条件执行减分支；Thumb2压缩模式移动端用。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;AArch64服务器（如AWS Graviton）前端瓶颈类似x86，但分支预测更强（Arm Neoverse）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;优化目标：提高&lt;strong&gt;IPC&lt;/strong&gt;（目标4-6），减&lt;strong&gt;前端摊销（Front-End Stalls）&lt;/strong&gt;。&lt;/p&gt;
+&lt;h3 id="第二部分编译原理底层从源码到二进制全流程"&gt;第二部分：编译原理底层——从源码到二进制全流程&lt;/h3&gt;
+&lt;p&gt;编译器（如GCC/Clang/LLVM）分三阶段：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;前端（Front-End）&lt;/strong&gt;：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;词法/语法分析 → AST → 类型检查。&lt;/li&gt;
+&lt;li&gt;生成IR（Intermediate Representation，如LLVM IR，SSA形式）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;ol start="2"&gt;
+&lt;li&gt;&lt;strong&gt;中端（Middle-End）&lt;/strong&gt;：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;IR优化：常量折叠、传播、死代码消除、内联、循环向量化。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Pass Manager&lt;/strong&gt;：LLVM模块化Pass链。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;ol start="3"&gt;
+&lt;li&gt;&lt;strong&gt;后端（Back-End）&lt;/strong&gt;：&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;指令选择、寄存器分配、调度、代码生成。&lt;/li&gt;
+&lt;li&gt;输出汇编 → 汇编器 → 对象文件。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;链接器（ld/lld）合并对象 → 可执行二进制。LTO在链接时回IR优化。&lt;/p&gt;</description></item><item><title>CPU 架构分类详解</title><link>https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/</link><pubDate>Tue, 23 Dec 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/</guid><description>&lt;h2 id="cpu-架构的两大分类维度"&gt;CPU 架构的两大分类维度&lt;/h2&gt;
+&lt;h3 id="维度一指令集架构-isa-instruction-set-architecture"&gt;维度一：指令集架构 (ISA, Instruction Set Architecture)&lt;/h3&gt;
+&lt;p&gt;这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;架构家族&lt;/td&gt;
+&lt;td&gt;代表厂商/产品&lt;/td&gt;
+&lt;td&gt;特点&lt;/td&gt;
+&lt;td&gt;典型应用场景&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;x86&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Intel, AMD&lt;/td&gt;
+&lt;td&gt;CISC 复杂指令集，向后兼容极强&lt;/td&gt;
+&lt;td&gt;PC、服务器、游戏主机&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;x86-64 / AMD64&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Intel, AMD&lt;/td&gt;
+&lt;td&gt;x86 的 64 位扩展，目前桌面/服务器主流&lt;/td&gt;
+&lt;td&gt;几乎所有现代 PC 和数据中心&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;ARM&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;ARM 公司授权&lt;/td&gt;
+&lt;td&gt;RISC 精简指令集，高能效比&lt;/td&gt;
+&lt;td&gt;手机、平板、嵌入式、现在进军 PC/服务器&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;ARM64 / AArch64&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Apple M系列、高通、联发科&lt;/td&gt;
+&lt;td&gt;ARM 的 64 位版本，&lt;strong&gt;你看到的转储就是这个&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;iPhone、Android、Mac M1/M2/M3、云服务器&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;RISC-V&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;开源社区&lt;/td&gt;
+&lt;td&gt;开源、模块化、免授权费&lt;/td&gt;
+&lt;td&gt;物联网、AI 芯片、教育领域&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;MIPS&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;已衰落&lt;/td&gt;
+&lt;td&gt;经典 RISC，曾用于路由器/游戏机&lt;/td&gt;
+&lt;td&gt;逐步被 RISC-V 取代&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;PowerPC&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;IBM&lt;/td&gt;
+&lt;td&gt;高性能、高可靠性&lt;/td&gt;
+&lt;td&gt;曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SPARC&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Oracle/Sun&lt;/td&gt;
+&lt;td&gt;开放标准，曾用于企业级服务器&lt;/td&gt;
+&lt;td&gt;已基本退出市场&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h3 id="维度二微架构-microarchitecture"&gt;维度二：微架构 (Microarchitecture)&lt;/h3&gt;
+&lt;p&gt;微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。&lt;/p&gt;</description></item><item><title>ARM64汇编极简入门手册</title><link>https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/</link><pubDate>Sat, 20 Dec 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/</guid><description>&lt;h2 id="1-核心概念必须知道"&gt;1. 核心概念（必须知道）&lt;/h2&gt;
+&lt;h3 id="11-寄存器32个通用寄存器"&gt;1.1 寄存器（32个通用寄存器）&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;寄存器&lt;/td&gt;
+&lt;td&gt;用途&lt;/td&gt;
+&lt;td&gt;记忆口诀&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X0-X7&lt;/td&gt;
+&lt;td&gt;函数参数/返回值&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;0-7传参数&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X8&lt;/td&gt;
+&lt;td&gt;系统调用号&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;8号 syscall&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X9-X15&lt;/td&gt;
+&lt;td&gt;临时变量（用完即弃）&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;临时9到15&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X16-X17&lt;/td&gt;
+&lt;td&gt;链接器专用&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;链接1617&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X18&lt;/td&gt;
+&lt;td&gt;平台保留&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;平台18&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X19-X28&lt;/td&gt;
+&lt;td&gt;跨函数保存的变量&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;保存19-28&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X29 (FP)&lt;/td&gt;
+&lt;td&gt;栈帧指针&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;29帧指针&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;X30 (LR)&lt;/td&gt;
+&lt;td&gt;返回地址&lt;/td&gt;
+&lt;td&gt;&lt;strong&gt;30要返回&lt;/strong&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;W0-W30&lt;/strong&gt;：X寄存器的低32位版本。用W操作后，高32位自动清零。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h3 id="12-特殊寄存器"&gt;1.2 特殊寄存器&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;名称&lt;/td&gt;
+&lt;td&gt;功能&lt;/td&gt;
+&lt;td&gt;关键指令&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;SP&lt;/td&gt;
+&lt;td&gt;栈指针&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;STP/LDP&lt;/code&gt; 操作栈&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;PC&lt;/td&gt;
+&lt;td&gt;程序计数器（当前执行位置）&lt;/td&gt;
+&lt;td&gt;自动+4&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;XZR&lt;/td&gt;
+&lt;td&gt;零寄存器（读=0，写=丢弃）&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;CMP&lt;/code&gt; 底层用它&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="2-最常用的指令先学这20个"&gt;2. 最常用的指令（先学这20个）&lt;/h2&gt;
+&lt;h3 id="21-数据搬运"&gt;2.1 数据搬运&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;th&gt;&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;指令&lt;/td&gt;
+&lt;td&gt;示例&lt;/td&gt;
+&lt;td&gt;含义&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;MOV&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;MOV X0, X1&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;X0 = X1&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;MOV&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;MOV X0, #100&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;X0 = 100&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;LDR&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;LDR X0, [X1]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;X0 = *X1（从内存读）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;STR&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;STR X0, [X1]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;*X1 = X0（写内存）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;LDP&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;LDP X0, X1, [SP]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;从栈弹出两个值&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;STP&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;STP X0, X1, [SP, #-16]!&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;压栈两个值（!表示先减SP）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;p&gt;&lt;strong&gt;方括号[] = 内存访问&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>基于逻辑回归的鸢尾花分类项目研究报告</title><link>https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/</link><pubDate>Wed, 03 Dec 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/</guid><description>&lt;h2 id="1-任务描述"&gt;1 任务描述&lt;/h2&gt;
+&lt;h3 id="11-项目背景"&gt;1.1 项目背景&lt;/h3&gt;
+&lt;p&gt;鸢尾花分类是机器学习领域的经典多分类任务，常作为入门级案例用于验证分类算法的有效性。本项目以逻辑回归为核心算法，针对鸢尾花数据集完成多分类任务，重点对比L1、L2正则化策略对模型性能、复杂度及可解释性的影响，并通过多维度可视化分析揭示模型特性与数据规律。&lt;/p&gt;
+&lt;h3 id="12-任务目标"&gt;1.2 任务目标&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;基于Julia语言手动实现支持多分类的逻辑回归（Softmax回归）模型；&lt;/li&gt;
+&lt;li&gt;系统对比无正则化、L1正则化、L2正则化三种配置下模型的训练效果与泛化能力；&lt;/li&gt;
+&lt;li&gt;完成特征重要性分析、决策边界可视化等可解释性分析；&lt;/li&gt;
+&lt;li&gt;构建完整的模型评估体系，并提出针对性的改进方案。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="13-技术路线"&gt;1.3 技术路线&lt;/h3&gt;
+&lt;p&gt;本项目遵循“数据探索→预处理→模型设计→训练评估→可视化分析→结论优化”的机器学习全流程，技术栈包括Julia的DataFrames（数据处理）、PyPlot（可视化）、LinearAlgebra/Statistics（数值计算）等库，核心是手动实现带正则化的逻辑回归训练逻辑。&lt;/p&gt;
+&lt;h2 id="2-数据集分析"&gt;2 数据集分析&lt;/h2&gt;
+&lt;h3 id="21-数据集概述"&gt;2.1 数据集概述&lt;/h3&gt;
+&lt;p&gt;鸢尾花数据集（Iris Dataset）包含150个样本，无缺失值，是机器学习领域的基准数据集。核心信息如下：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;样本规模：150个（3类鸢尾花，每类50个样本）；&lt;/li&gt;
+&lt;li&gt;特征维度：4个连续数值型特征（花萼长度/宽度、花瓣长度/宽度，单位：cm）；&lt;/li&gt;
+&lt;li&gt;类别标签：Setosa（0）、Versicolor（1）、Virginica（2）；&lt;/li&gt;
+&lt;li&gt;数据质量：无缺失值、无异常值，特征均为浮点型，无需额外清洗。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="22-样本分布与数据探索"&gt;2.2 样本分布与数据探索&lt;/h3&gt;
+&lt;h4 id="221-类别分布"&gt;2.2.1 类别分布&lt;/h4&gt;
+&lt;p&gt;三类鸢尾花样本数量均等（各50个，占比33.3%），无类别不平衡问题，为模型训练提供了均衡的样本基础。&lt;/p&gt;
+&lt;h4 id="222-特征分布与相关性分析"&gt;2.2.2 特征分布与相关性分析&lt;/h4&gt;
+&lt;p&gt;通过综合数据探索可视化（图2-1）可得出核心规律：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;特征分布&lt;/strong&gt;：Setosa类别的花瓣长度/宽度显著小于另外两类，具备强区分度；Versicolor与Virginica在花萼特征上存在明显重叠；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;特征相关性&lt;/strong&gt;：花瓣长度与花瓣宽度的相关系数达0.96（高度正相关），花萼宽度与其他特征相关性较弱；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;散点分布&lt;/strong&gt;：花瓣特征（长度+宽度）对类别区分的贡献远高于花萼特征。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;图2-1 鸢尾花数据集探索性分析图&lt;/p&gt;
+&lt;p&gt;注：左上至右依次为4个特征的类别分布直方图、类别占比饼图、特征相关性热图、花瓣特征散点图&lt;/p&gt;
+&lt;h3 id="23-数据预处理"&gt;2.3 数据预处理&lt;/h3&gt;
+&lt;h4 id="231-数据集分割"&gt;2.3.1 数据集分割&lt;/h4&gt;
+&lt;p&gt;按8:2比例随机划分训练集（120个样本）和测试集（30个样本），并固定随机种子（seed=123）保证可复现性。&lt;/p&gt;
+&lt;h4 id="232-特征标准化"&gt;2.3.2 特征标准化&lt;/h4&gt;
+&lt;p&gt;对特征进行Z-score标准化（均值归零、方差归一化），消除量纲影响：&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/ceeacbb1c1074ac3a8fd4e847dfcd71c.svg"&gt;&lt;/p&gt;
+&lt;p&gt;其中&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/756a643380ff53c0692dbc2e7e930a35.svg"&gt;、&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/788df1ba344b3092def7590d1be6b4d4.svg"&gt;分别为训练集特征的均值和标准差，标准化后训练集特征均值接近0、标准差接近1，提升模型收敛效率。&lt;/p&gt;
+&lt;h2 id="3-模型设计"&gt;3 模型设计&lt;/h2&gt;
+&lt;h3 id="31-逻辑回归softmax回归理论基础"&gt;3.1 逻辑回归（Softmax回归）理论基础&lt;/h3&gt;
+&lt;p&gt;针对多分类任务，采用Softmax回归扩展二分类逻辑回归，核心原理如下：&lt;/p&gt;
+&lt;h4 id="311-softmax函数"&gt;3.1.1 Softmax函数&lt;/h4&gt;
+&lt;p&gt;将线性输出映射为类别概率，保证所有类别概率和为1：&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/49026dd9e848d4d6c78911a2f3c31f3a.svg"&gt;&lt;/p&gt;
+&lt;p&gt;其中：&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/cded91fc00248b5700d3238ea3029283.svg"&gt;为第&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/df976ff7fcf17d60490267d18a1e3996.svg"&gt;类的权重向量，&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/1f5d3413a75a880fb3b66b554a9904df.svg"&gt;为偏置项，&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/2adf48e1cf80858f0604d2b51eeed4b8.svg"&gt;为输入特征向量，&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/18b05f762019872416742ce99455948a.svg"&gt;（类别数）。&lt;/p&gt;
+&lt;h4 id="312-交叉熵损失函数"&gt;3.1.2 交叉熵损失函数&lt;/h4&gt;
+&lt;p&gt;衡量预测概率与真实标签的差异，是多分类任务的核心损失：&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/97e494b63e34a799ac5260a66ac4f9fd.svg"&gt;&lt;/p&gt;
+&lt;p&gt;注：添加&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/cc952739df606578e86dcf43f7b59f50.svg"&gt;避免&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/a51458f7f615034e798be0d8268326fa.svg"&gt;数值溢出；&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/cd453fed3d5a2c314babe3b8174b1ffd.svg"&gt;为真实标签的One-hot编码，&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/bf06e8ce2d0e0693183130e6afc650c6.svg"&gt;为预测概率。&lt;/p&gt;
+&lt;h3 id="32-正则化策略设计"&gt;3.2 正则化策略设计&lt;/h3&gt;
+&lt;p&gt;为缓解过拟合，引入L1、L2正则化，核心是在损失函数中加入权重惩罚项：&lt;/p&gt;
+&lt;h4 id="321-l2正则化岭回归"&gt;3.2.1 L2正则化（岭回归）&lt;/h4&gt;
+&lt;p&gt;惩罚权重的平方和，使权重均匀收缩，避免单个权重过大：&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/images/ff4e53a732d5256319e1ad02092e51ce.svg"&gt;&lt;/p&gt;</description></item><item><title>Linux 服务器配置 SSH 连接 GitLab 仓库</title><link>https://lhao4.github.io/posts/linux/configure-ssh/</link><pubDate>Sun, 01 Jun 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/linux/configure-ssh/</guid><description>&lt;p&gt;目标：&lt;strong&gt;让 Linux 服务器通过 SSH 访问公司 GitLab 仓库&lt;/strong&gt;（免密码 clone / push）。&lt;/p&gt;
+&lt;p&gt;核心流程只有 4 步：&lt;/p&gt;
+&lt;p&gt;1️⃣ 生成 SSH key2️⃣ 把公钥添加到 &lt;strong&gt;GitLab&lt;/strong&gt;&lt;br&gt;
+3️⃣ 测试 SSH 连接4️⃣ 使用 SSH clone&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="-一在-linux-服务器生成-ssh-密钥"&gt;⭐ 一、在 Linux 服务器生成 SSH 密钥&lt;/h1&gt;
+&lt;p&gt;推荐 &lt;strong&gt;ed25519&lt;/strong&gt;（更安全、更快）&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ssh-keygen -t ed25519 -C &amp;#34;your_email&amp;#34;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;一路回车即可。&lt;/p&gt;
+&lt;p&gt;生成后默认文件：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;~/.ssh/id_ed25519
+~/.ssh/id_ed25519.pub
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h1 id="-二查看公钥内容"&gt;⭐ 二、查看公钥内容&lt;/h1&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;cat ~/.ssh/id_ed25519.pub
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;复制整行输出。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="-三把公钥添加到-gitlab"&gt;⭐ 三、把公钥添加到 GitLab&lt;/h1&gt;
+&lt;p&gt;进入 GitLab：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;头像 → Preferences → SSH Keys
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;或直接：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;https://gitlab.xxx.com/-/profile/keys
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;粘贴公钥 → Add key。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="-四测试-ssh-连接"&gt;⭐ 四、测试 SSH 连接&lt;/h1&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ssh -T git@gitlab.xxx.com
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;第一次会提示：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Are you sure you want to continue connecting?
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输入：&lt;/p&gt;</description></item><item><title>面试常见问题整理</title><link>https://lhao4.github.io/posts/%E9%9D%A2%E8%AF%95/%E9%9D%A2%E8%AF%95%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/</link><pubDate>Thu, 01 May 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E9%9D%A2%E8%AF%95/%E9%9D%A2%E8%AF%95%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98/</guid><description>&lt;h1 id="1面向对象"&gt;1、面向对象&lt;/h1&gt;
+&lt;h2 id="什么是面向对象"&gt;什么是面向对象？&lt;/h2&gt;
+&lt;p&gt;&lt;strong&gt;面向对象：&lt;/strong&gt; 面向对象（Object-Oriented Programming，简称 OOP）是一种编程思想，核心是将现实世界中的具体事物抽象为对象，对象具有属性（数据）和行为（操作数据的方法），同类对象的抽象为类。&lt;/p&gt;
+&lt;h2 id="面向对象三大特性"&gt;面向对象三大特性：&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;封装：&lt;/strong&gt; 将事物的属性和行为包装在一起成类，通过设置访问权限（public、private，protected）来控制对外暴露。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;继承：&lt;/strong&gt; 通过现有的类来实现新的类，继承的类（子类）拥有被继承类（父类）的属性和行为，可以在原有功能的基础上进行扩展。提高了代码的复用性。是多态的前提。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;多态：&lt;/strong&gt; 是指同一接口在不同对象上表现出不同的行为。当父类的引用 / 指针指向子类的对象时，调用同一方法会执行子类的实现（而非父类），实现 “调用方式统一，执行结果不同”。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="多态的分类从行为差异的时机划分"&gt;多态的分类：从“行为差异的时机”划分&lt;/h2&gt;
+&lt;p&gt;多态的核心是“同一接口，不同行为”，但“行为差异何时确定”决定了其分类，这与面向对象中“类的抽象”和“对象的具体”紧密相关：&lt;/p&gt;
+&lt;h3 id="1-静态多态编译期多态基于类的抽象在编译时确定行为"&gt;1. 静态多态（编译期多态）：基于“类的抽象”在编译时确定行为&lt;/h3&gt;
+&lt;p&gt;静态多态的行为差异在&lt;strong&gt;编译阶段&lt;/strong&gt;就已确定，依赖于“类的静态接口定义”，不涉及对象的动态类型。它的核心是“同一函数名，根据输入参数的差异（类型、个数等）匹配不同实现”，本质是编译器对“类或函数的抽象定义”进行静态解析。&lt;br&gt;
+&lt;strong&gt;实现方式&lt;/strong&gt;：函数重载、运算符重载。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;这是面向对象中“封装”特性的体现：类通过封装不同参数的同名方法，对外提供统一接口（函数名），内部根据参数差异处理不同逻辑。&lt;br&gt;
+&lt;strong&gt;示例&lt;/strong&gt;（类内函数重载，静态多态）：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-C++" data-lang="C++"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 封装了“计算面积”行为的 Shape 类
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Shape&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 重载1：计算圆形面积（参数：半径）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;area&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;radius&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mf"&gt;3.14&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;radius&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;radius&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 重载2：计算矩形面积（参数：长、宽）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="nf"&gt;area&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;double&lt;/span&gt; &lt;span class="n"&gt;width&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;length&lt;/span&gt; &lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;width&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Shape&lt;/span&gt; &lt;span class="n"&gt;shape&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;shape&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;area&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;2.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;endl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// 编译时匹配“圆形面积”，输出 12.56
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;shape&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;area&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mf"&gt;2.0&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mf"&gt;3.0&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;endl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// 编译时匹配“矩形面积”，输出 6.0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;这里的“多态”是&lt;code&gt;Shape&lt;/code&gt;类通过封装不同参数的&lt;code&gt;area&lt;/code&gt;方法实现的，编译器在编译时就根据参数确定了调用哪个版本，与对象的动态类型无关（静态多态不依赖继承）。&lt;/p&gt;
+&lt;h3 id="2-动态多态运行期多态基于对象的具体在运行时确定行为"&gt;2. 动态多态（运行期多态）：基于“对象的具体”在运行时确定行为&lt;/h3&gt;
+&lt;p&gt;动态多态的行为差异在&lt;strong&gt;程序运行阶段&lt;/strong&gt;才确定，依赖于“对象的实际类型”，是面向对象三大特性协同作用的结果：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;依赖&lt;strong&gt;继承&lt;/strong&gt;：必须存在父类与子类的层级关系（子类是父类的具体实现）；&lt;/li&gt;
+&lt;li&gt;依赖&lt;strong&gt;封装&lt;/strong&gt;：父类通过&lt;code&gt;virtual&lt;/code&gt;关键字封装虚函数（统一接口），子类重写该函数（具体实现）；&lt;/li&gt;
+&lt;li&gt;依赖“对象的抽象与具体”：通过父类的引用/指针指向子类对象（抽象接口指向具体实例），调用接口时动态匹配对象的具体实现。&lt;br&gt;
+这完全符合面向对象“将现实事物抽象为对象，同类对象抽象为类”的思想——比如“动物（父类）”是抽象类，“猫、狗（子类）”是具体对象，“叫（虚函数）”是统一接口，不同动物的叫声（子类重写）是具体行为。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2 id="动态多态的实现虚函数继承父类引用指针"&gt;动态多态的实现：虚函数+继承+父类引用/指针&lt;/h2&gt;
+&lt;p&gt;动态多态的实现严格依赖三大条件（与面向对象特性深度绑定）：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;继承关系&lt;/strong&gt;（继承特性）：子类必须公有继承父类，保证父类接口能被子类复用和扩展；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;虚函数重写&lt;/strong&gt;（封装+继承）：父类用&lt;code&gt;virtual&lt;/code&gt;声明虚函数（封装统一接口），子类用&lt;code&gt;override&lt;/code&gt;重写该函数（扩展具体实现），且函数签名（名称、参数、返回值）必须完全一致；&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;父类引用/指针&lt;/strong&gt;（抽象与具体的关联）：通过父类的引用或指针指向子类对象，调用虚函数时，程序会根据对象的实际类型（而非指针/引用的声明类型）执行对应实现。&lt;br&gt;
+&lt;strong&gt;底层机制&lt;/strong&gt;：虚函数表（vtable）与虚指针（vptr）&lt;/li&gt;
+&lt;/ol&gt;
+&lt;ul&gt;
+&lt;li&gt;每个包含虚函数的类（父类/子类）会有一个&lt;strong&gt;虚函数表（vtable）&lt;/strong&gt;（类级别的全局表），存储该类所有虚函数的地址。子类重写父类虚函数后，会用子类函数地址替换vtable中对应位置的父类函数地址；&lt;/li&gt;
+&lt;li&gt;每个对象会隐含一个&lt;strong&gt;虚指针（vptr）&lt;/strong&gt;（对象级别的隐藏成员），指向所属类的vtable。当通过父类指针/引用调用虚函数时，程序通过vptr找到vtable，再定位到具体函数地址（运行时动态绑定）。&lt;br&gt;
+&lt;strong&gt;示例&lt;/strong&gt;（动态多态，结合继承与封装）：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-C++" data-lang="C++"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 抽象父类：动物（封装虚函数接口）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Animal&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;virtual&lt;/span&gt; &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;bark&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// 纯虚函数（仅声明接口，无实现）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 子类：狗（继承并扩展父类接口）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Dog&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;Animal&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;bark&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;override&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="c1"&gt;// 重写虚函数，具体实现
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;#34;汪汪&amp;#34;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;endl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 子类：猫（继承并扩展父类接口）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Cat&lt;/span&gt; &lt;span class="o"&gt;:&lt;/span&gt; &lt;span class="k"&gt;public&lt;/span&gt; &lt;span class="n"&gt;Animal&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="n"&gt;bark&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="k"&gt;override&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt; &lt;span class="c1"&gt;// 重写虚函数，具体实现
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;#34;喵喵&amp;#34;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;endl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;// 统一接口：接收父类引用（抽象指向具体）
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;letAnimalBark&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;Animal&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;animal&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;animal&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;bark&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt; &lt;span class="c1"&gt;// 运行时根据对象实际类型调用对应实现
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Dog&lt;/span&gt; &lt;span class="n"&gt;dog&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Cat&lt;/span&gt; &lt;span class="n"&gt;cat&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;letAnimalBark&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;dog&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// 传入Dog对象 → 输出“汪汪”
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;letAnimalBark&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;cat&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt; &lt;span class="c1"&gt;// 传入Cat对象 → 输出“喵喵”
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h2 id="重载overload与重写override多态的两种实现手段"&gt;重载（Overload）与重写（Override）：多态的两种实现手段&lt;/h2&gt;
+&lt;p&gt;重载和重写是实现多态的核心操作，但二者本质不同，需结合面向对象特性区分：&lt;/p&gt;</description></item><item><title>C++ 总复习</title><link>https://lhao4.github.io/posts/%E9%9D%A2%E8%AF%95/cpp-review/</link><pubDate>Tue, 01 Apr 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E9%9D%A2%E8%AF%95/cpp-review/</guid><description>&lt;h1 id="1重点c语言和c的区别"&gt;1、&lt;font style="color:#DF2A3F;"&gt;（重点）&lt;/font&gt;C语言和C++的区别&lt;/h1&gt;
+&lt;ul&gt;
+&lt;li&gt;C语言头文带.h，C++不带&lt;/li&gt;
+&lt;li&gt;C语言没有bool类型&lt;/li&gt;
+&lt;li&gt;C语言不能函数重载，C++能重载&lt;font style="background-color:#FBDE28;"&gt;（可以延伸到重载原理，函数如何被编译器命名，以及重载是静态多态从而引导面试官问多态问题）&lt;/font&gt;&lt;/li&gt;
+&lt;li&gt;C语言是面向过程编程，C++是面向对象编程（封装、继承、多态）&lt;/li&gt;
+&lt;li&gt;NULL在C语言是（void*）0，而在C++中是0。原因如下：&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#ifndef NULL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#ifdef __cplusplus
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#define NULL 0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#else
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#define NULL ((void *)0)
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#endif
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#endif
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&amp;lt;iostream&amp;gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="k"&gt;namespace&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;fun&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;){&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;void&lt;/span&gt; &lt;span class="nf"&gt;fun&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//C语言中NULL的定义 #define NULL ((void *)0)
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//C++中NULL的定义 #define NULL 0
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//因为C++中不允许如void*类型的指针隐式转换成其他类型的指针
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;void&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;p1&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="c1"&gt;//报错
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//可以强制转换，但是如果NULL在C++中任然是void* 0，则需要每次转换
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;p2&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="n"&gt;p&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//其次在函数重载时会引发二义性问题
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;fun&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="nb"&gt;NULL&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;&lt;span class="c1"&gt;//NULL是0还是空指针呢？C++引入nullptr也是为了解决重载的问题
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;(1)c语言是面向过程的程序设计，主要核心为:数据结构和算法，具有高效的特性对于C语言程序的设计，主要是考虑如何通过一个过程，对输入进行处理得出一个输出。C++是面向对象的程序设计，对于C++，首先考虑的是如何构造一个对象模型，让这个模型配合对应问题，这样可以通过获取对象状态信息得到输出。&lt;/p&gt;
+&lt;p&gt;(2)C++比C语言的增强点:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;命名空间&lt;/li&gt;
+&lt;li&gt;变量检测加强&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;g_var&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;g_var&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;210&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;argc&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="kt"&gt;char&lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt; &lt;span class="n"&gt;argv&lt;/span&gt;&lt;span class="p"&gt;[])&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;printf&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s"&gt;&amp;#34;g_var = %d&lt;/span&gt;&lt;span class="se"&gt;\n&lt;/span&gt;&lt;span class="s"&gt;&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;g_var&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;在C语言中，输出正常:210;&lt;/p&gt;
+&lt;p&gt;在 C++中，运行出错，变量重定义。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;struct 加强:C语言 struct定义了一组变量的集合，C编译器不认为这是一种新的类型;C++编译器中的 struct 是一个新类型的定义声明;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;struct&lt;/span&gt; &lt;span class="nc"&gt;Student&lt;/span&gt;&lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;char&lt;/span&gt; &lt;span class="n"&gt;name&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="mi"&gt;20&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;age&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;Student&lt;/span&gt; &lt;span class="n"&gt;s1&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="s"&gt;&amp;#34;张三&amp;#34;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="mi"&gt;18&lt;/span&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//C语言中必须加上struct关键字
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;//struct Student s2 = { &amp;#34;李四&amp;#34;, 15 };
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h1 id="2函数重载问题"&gt;2、函数重载问题&lt;/h1&gt;
+&lt;h2 id="什么是函数重载"&gt;什么是函数重载？&lt;/h2&gt;
+&lt;p&gt;在同一个作用域内，函数名字相同，参数的个数、顺序或类型其中一个不同就是函数重载，函数重载与返回值无关。&lt;/p&gt;</description></item><item><title>LeetCode Hot 100 题解</title><link>https://lhao4.github.io/posts/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/leetcode-hot100/</link><pubDate>Sat, 01 Feb 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E4%B8%8E%E7%AE%97%E6%B3%95/leetcode-hot100/</guid><description>&lt;h1&gt;&lt;a href="https://leetcode.cn/problems/two-sum/"&gt;&lt;font style="color:rgb(10, 132, 255);"&gt;1. 两数之和&lt;/font&gt;&lt;/a&gt;&lt;/h1&gt;
+&lt;p&gt;要解决“两数之和”问题，使用哈希表可以高效地在O(n)时间复杂度内完成。以下是具体实现：&lt;/p&gt;
+&lt;h3 id="解题思路"&gt;解题思路：&lt;/h3&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;哈希表作用&lt;/strong&gt;：使用&lt;code&gt;unordered_map&lt;/code&gt;存储已经遍历过的数值及其对应的索引，实现O(1)时间复杂度的查找。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;遍历数组&lt;/strong&gt;：对每个元素&lt;code&gt;nums[i]&lt;/code&gt;，计算与目标值的差值（补数）&lt;code&gt;complement = target - nums[i]&lt;/code&gt;。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;查找补数&lt;/strong&gt;：如果补数已存在于哈希表中，说明之前遍历过的元素中存在与当前元素之和为目标值的数，直接返回两个索引。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;存储当前元素&lt;/strong&gt;：如果补数不存在，则将当前元素及其索引存入哈希表，继续遍历。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;vector&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;unordered_map&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="k"&gt;namespace&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Solution&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;twoSum&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;nums&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;target&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;unordered_map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="kt"&gt;int&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;numMap&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="c1"&gt;// 存储数值到索引的映射
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;nums&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;size&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt; &lt;span class="o"&gt;++&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="n"&gt;complement&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;target&lt;/span&gt; &lt;span class="o"&gt;-&lt;/span&gt; &lt;span class="n"&gt;nums&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;];&lt;/span&gt; &lt;span class="c1"&gt;// 计算需要找到的补数
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 检查补数是否已存在于哈希表中
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;if&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;numMap&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;find&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;complement&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="o"&gt;!=&lt;/span&gt; &lt;span class="n"&gt;numMap&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;())&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 找到则返回两个数的索引
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;&lt;span class="n"&gt;numMap&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;complement&lt;/span&gt;&lt;span class="p"&gt;],&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 未找到则将当前数值和索引存入哈希表
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;numMap&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;nums&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;]]&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;i&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 题目保证有解，这里只是为了语法完整
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="p"&gt;{};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="复杂度分析"&gt;复杂度分析：&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;时间复杂度&lt;/strong&gt;：O(n)，其中n是数组长度，每个元素最多被遍历一次，哈希表的插入和查找操作平均为O(1)。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;空间复杂度&lt;/strong&gt;：O(n)，最坏情况下需要存储所有元素到哈希表中。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这种方法通过空间换时间，高效地解决了两数之和问题，避免了暴力解法的O(n²)时间复杂度。&lt;/p&gt;
+&lt;h1&gt;&lt;a href="https://leetcode.cn/problems/group-anagrams/"&gt;&lt;font style="color:rgb(10, 132, 255);"&gt;49. 字母异位词分组&lt;/font&gt;&lt;/a&gt;&lt;/h1&gt;
+&lt;p&gt;要解决“字母异位词分组”问题，我们可以利用哈希表结合字符排序的方法，高效地将异位词（字母相同但顺序不同的单词）分组。以下是具体实现：&lt;/p&gt;
+&lt;h3 id="解题思路-1"&gt;解题思路&lt;/h3&gt;
+&lt;p&gt;异位词的核心特征是：对单词中的字符进行排序后，得到的字符串完全相同。例如，&amp;ldquo;listen&amp;rdquo; 和 &amp;ldquo;silent&amp;rdquo; 排序后都是 &amp;ldquo;eilnst&amp;rdquo;。因此，我们可以：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;以“排序后的字符串”作为哈希表的&lt;strong&gt;键&lt;/strong&gt;（key），确保所有异位词对应同一个键。&lt;/li&gt;
+&lt;li&gt;以“异位词组成的列表”作为哈希表的&lt;strong&gt;值&lt;/strong&gt;（value），将所有排序后相同的单词存入同一列表。&lt;/li&gt;
+&lt;li&gt;遍历所有单词，完成分组后，提取哈希表中的所有值，即为最终结果。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;vector&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;string&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;unordered_map&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;algorithm&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="k"&gt;namespace&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;class&lt;/span&gt; &lt;span class="nc"&gt;Solution&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;public&lt;/span&gt;&lt;span class="o"&gt;:&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;groupAnagrams&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;amp;&lt;/span&gt; &lt;span class="n"&gt;strs&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 哈希表：key为排序后的字符串，value为异位词列表
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;unordered_map&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt; &lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;groups&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="nl"&gt;s&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;strs&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 对当前字符串排序，得到key
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;string&lt;/span&gt; &lt;span class="n"&gt;key&lt;/span&gt; &lt;span class="o"&gt;=&lt;/span&gt; &lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;sort&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;key&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;begin&lt;/span&gt;&lt;span class="p"&gt;(),&lt;/span&gt; &lt;span class="n"&gt;key&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;end&lt;/span&gt;&lt;span class="p"&gt;());&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 将原字符串加入对应的分组
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;groups&lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="n"&gt;key&lt;/span&gt;&lt;span class="p"&gt;].&lt;/span&gt;&lt;span class="n"&gt;push_back&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;s&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="c1"&gt;// 提取所有分组到结果中
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;vector&lt;/span&gt;&lt;span class="o"&gt;&amp;lt;&lt;/span&gt;&lt;span class="n"&gt;string&lt;/span&gt;&lt;span class="o"&gt;&amp;gt;&amp;gt;&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;for&lt;/span&gt; &lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;const&lt;/span&gt; &lt;span class="k"&gt;auto&lt;/span&gt;&lt;span class="o"&gt;&amp;amp;&lt;/span&gt; &lt;span class="nl"&gt;pair&lt;/span&gt; &lt;span class="p"&gt;:&lt;/span&gt; &lt;span class="n"&gt;groups&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;push_back&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;pair&lt;/span&gt;&lt;span class="p"&gt;.&lt;/span&gt;&lt;span class="n"&gt;second&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="n"&gt;result&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;};&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="复杂度分析-1"&gt;复杂度分析&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;时间复杂度&lt;/strong&gt;：O(n × k log k)，其中 &lt;code&gt;n&lt;/code&gt; 是字符串的数量，&lt;code&gt;k&lt;/code&gt; 是字符串的最大长度。每个字符串需要排序（时间复杂度 O(k log k)），总共有 &lt;code&gt;n&lt;/code&gt; 个字符串，因此整体为 O(n × k log k)。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;空间复杂度&lt;/strong&gt;：O(n × k)，哈希表需要存储所有字符串，总空间取决于所有字符串的总长度。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id="关键说明"&gt;关键说明&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;排序是核心：通过排序将异位词转换为相同的键，确保分组正确性。&lt;/li&gt;
+&lt;li&gt;哈希表高效映射：利用 &lt;code&gt;unordered_map&lt;/code&gt; 实现键到列表的快速映射，插入和查找操作的平均时间复杂度为 O(1)。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;这种方法简洁且高效，是解决异位词分组问题的经典思路。&lt;/p&gt;</description></item><item><title>MySQL学习笔记</title><link>https://lhao4.github.io/posts/mysql/mysql%E7%AC%94%E8%AE%B0/</link><pubDate>Sat, 01 Jun 2024 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/mysql/mysql%E7%AC%94%E8%AE%B0/</guid><description>&lt;h1 id="mysql-学习笔记"&gt;MySQL 学习笔记&lt;/h1&gt;
+&lt;h2 id="一数据库概述"&gt;一、数据库概述&lt;/h2&gt;
+&lt;h3 id="11-主流数据库"&gt;1.1 主流数据库&lt;/h3&gt;
+&lt;h4 id="关系型数据库rdbms"&gt;关系型数据库（RDBMS）&lt;/h4&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;数据库&lt;/th&gt;
+&lt;th&gt;特点&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Oracle Database&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;企业级关系型数据库，具有强大的事务处理能力和高并发支持，适合金融、电信等关键业务场景&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;MySQL&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;最流行的开源关系型数据库之一，轻量级架构，广泛应用于 Web 应用程序开发&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Microsoft SQL Server&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;微软推出的旗舰级关系型数据库，与 Windows 及 .NET 深度集成&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;PostgreSQL&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;功能强大的开源对象关系型数据库，严格遵循 SQL 标准，支持 JSON、GIS 等高级数据类型&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SQLite&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;专为嵌入式系统设计的轻量级数据库，零配置，适合移动应用和物联网设备&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h4 id="非关系型数据库nosql"&gt;非关系型数据库（NoSQL）&lt;/h4&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;代表产品&lt;/th&gt;
+&lt;th&gt;特点&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;键值存储&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Redis、DynamoDB&lt;/td&gt;
+&lt;td&gt;基于内存的高性能存储，支持多种数据结构&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;文档存储&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;MongoDB、Couchbase&lt;/td&gt;
+&lt;td&gt;采用 BSON/JSON 格式，支持动态 schema&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;列族存储&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Cassandra、HBase&lt;/td&gt;
+&lt;td&gt;分布式架构，适合海量数据存储&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;图数据库&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Neo4j、Amazon Neptune&lt;/td&gt;
+&lt;td&gt;专注于图数据模型，适合关系网络分析&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;时序数据库&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;InfluxDB、TimescaleDB&lt;/td&gt;
+&lt;td&gt;专为时间序列数据优化&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;搜索引擎&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Elasticsearch&lt;/td&gt;
+&lt;td&gt;基于 Lucene，支持全文检索和实时分析&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id="12-数据库基本概念"&gt;1.2 数据库基本概念&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;概念&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;DBMS&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;数据库管理系统，提供数据定义、操作及安全控制功能&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;数据库&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;按数据模型组织的结构化数据集合，由关联表构成&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;表（Table）&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;数据库基本单元，由行列组成&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;列（Column）&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;表的垂直字段，定义数据类型与约束&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;行（Row）&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;表的水平记录，包含各列值&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;主键（Primary Key）&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;唯一标识记录的列或列组合&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SQL&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;关系型数据库标准语言，支持数据定义、操作及权限控制&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="二数据库基础操作"&gt;二、数据库基础操作&lt;/h2&gt;
+&lt;h3 id="21-数据库管理命令"&gt;2.1 数据库管理命令&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 显示所有数据库
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SHOW&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;DATABASES&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 创建数据库
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;CREATE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;DATABASE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="k"&gt;IF&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;NOT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;EXISTS&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="err"&gt;数据库名&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 使用数据库
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="n"&gt;USE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="err"&gt;数据库名&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 查看当前数据库信息
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;DATABASE&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 当前连接的数据库
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;VERSION&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 数据库版本
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;NOW&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 当前日期时间
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;USER&lt;/span&gt;&lt;span class="p"&gt;();&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 当前用户
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 删除数据库
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;DROP&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;DATABASE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;[&lt;/span&gt;&lt;span class="k"&gt;IF&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;EXISTS&lt;/span&gt;&lt;span class="p"&gt;]&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="err"&gt;数据库名&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 显示数据库中的表
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SHOW&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;TABLES&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;hr&gt;
+&lt;h2 id="三数据类型"&gt;三、数据类型&lt;/h2&gt;
+&lt;h3 id="31-整数类型"&gt;3.1 整数类型&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;存储空间&lt;/th&gt;
+&lt;th&gt;有符号范围&lt;/th&gt;
+&lt;th&gt;无符号范围&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;TINYINT&lt;/td&gt;
+&lt;td&gt;1字节&lt;/td&gt;
+&lt;td&gt;-128 ~ 127&lt;/td&gt;
+&lt;td&gt;0 ~ 255&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;SMALLINT&lt;/td&gt;
+&lt;td&gt;2字节&lt;/td&gt;
+&lt;td&gt;-32768 ~ 32767&lt;/td&gt;
+&lt;td&gt;0 ~ 65535&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;MEDIUMINT&lt;/td&gt;
+&lt;td&gt;3字节&lt;/td&gt;
+&lt;td&gt;-8388608 ~ 8388607&lt;/td&gt;
+&lt;td&gt;0 ~ 16777215&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;INT/INTEGER&lt;/td&gt;
+&lt;td&gt;4字节&lt;/td&gt;
+&lt;td&gt;-2147483648 ~ 2147483647&lt;/td&gt;
+&lt;td&gt;0 ~ 4294967295&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;BIGINT&lt;/td&gt;
+&lt;td&gt;8字节&lt;/td&gt;
+&lt;td&gt;-9223372036854775808 ~ 9223372036854775807&lt;/td&gt;
+&lt;td&gt;0 ~ 18446744073709551615&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 使用无符号类型
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;CREATE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;TABLE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;users&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;age&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;TINYINT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;UNSIGNED&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 0~255
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;score&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nb"&gt;INT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;UNSIGNED&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;);&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="32-浮点型和定点型"&gt;3.2 浮点型和定点型&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;FLOAT&lt;/td&gt;
+&lt;td&gt;单精度浮点数，约 7 位有效数字&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;DOUBLE&lt;/td&gt;
+&lt;td&gt;双精度浮点数，约 15 位有效数字&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;DECIMAL(M,D)&lt;/td&gt;
+&lt;td&gt;定点数，M 是总位数，D 是小数位数，精确计算&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 金额计算推荐使用 DECIMAL
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;CREATE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;TABLE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;orders&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;amount&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nb"&gt;DECIMAL&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;10&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="mi"&gt;2&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 最大 99999999.99
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;);&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="33-日期时间类型"&gt;3.3 日期时间类型&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;格式&lt;/th&gt;
+&lt;th&gt;范围&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;DATE&lt;/td&gt;
+&lt;td&gt;YYYY-MM-DD&lt;/td&gt;
+&lt;td&gt;&amp;lsquo;1000-01-01&amp;rsquo; ~ &amp;lsquo;9999-12-31&amp;rsquo;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;TIME&lt;/td&gt;
+&lt;td&gt;HH:MM:SS&lt;/td&gt;
+&lt;td&gt;&amp;lsquo;-838:59:59&amp;rsquo; ~ &amp;lsquo;838:59:59&amp;rsquo;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;DATETIME&lt;/td&gt;
+&lt;td&gt;YYYY-MM-DD HH:MM:SS&lt;/td&gt;
+&lt;td&gt;&amp;lsquo;1000-01-01 00:00:00&amp;rsquo; ~ &amp;lsquo;9999-12-31 23:59:59&amp;rsquo;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;TIMESTAMP&lt;/td&gt;
+&lt;td&gt;YYYY-MM-DD HH:MM:SS&lt;/td&gt;
+&lt;td&gt;&amp;lsquo;1970-01-01 00:00:01&amp;rsquo; UTC ~ &amp;lsquo;2038-01-19 03:14:07&amp;rsquo; UTC&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;YEAR&lt;/td&gt;
+&lt;td&gt;YYYY&lt;/td&gt;
+&lt;td&gt;1901 ~ 2155&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h3 id="34-字符串类型"&gt;3.4 字符串类型&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;CHAR(M)&lt;/td&gt;
+&lt;td&gt;固定长度，最大 255 字符，存储时右侧填充空格&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;VARCHAR(M)&lt;/td&gt;
+&lt;td&gt;可变长度，最大 65535 字节，只占用实际长度+1/2字节&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;TINYTEXT&lt;/td&gt;
+&lt;td&gt;最大 255 字节&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;TEXT&lt;/td&gt;
+&lt;td&gt;最大 65535 字节&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;MEDIUMTEXT&lt;/td&gt;
+&lt;td&gt;最大 16MB&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;LONGTEXT&lt;/td&gt;
+&lt;td&gt;最大 4GB&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;ENUM&lt;/td&gt;
+&lt;td&gt;枚举类型，只能选一个值&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;SET&lt;/td&gt;
+&lt;td&gt;集合类型，可以选多个值&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h4 id="char-和-varchar-的区别"&gt;CHAR 和 VARCHAR 的区别&lt;/h4&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;特性&lt;/th&gt;
+&lt;th&gt;CHAR&lt;/th&gt;
+&lt;th&gt;VARCHAR&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;存储方式&lt;/td&gt;
+&lt;td&gt;固定长度&lt;/td&gt;
+&lt;td&gt;可变长度&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;最大长度&lt;/td&gt;
+&lt;td&gt;255 字符&lt;/td&gt;
+&lt;td&gt;65535 字节&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;空间效率&lt;/td&gt;
+&lt;td&gt;可能浪费空间&lt;/td&gt;
+&lt;td&gt;节省空间&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;查询效率&lt;/td&gt;
+&lt;td&gt;更高&lt;/td&gt;
+&lt;td&gt;稍低&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;尾部空格&lt;/td&gt;
+&lt;td&gt;自动去除&lt;/td&gt;
+&lt;td&gt;保留&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-sql" data-lang="sql"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;CREATE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;TABLE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;vc&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nb"&gt;VARCHAR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;c&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="nb"&gt;CHAR&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="mi"&gt;4&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;);&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;INSERT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;INTO&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;vc&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;VALUES&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ab &amp;#39;&lt;/span&gt;&lt;span class="p"&gt;,&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ab &amp;#39;&lt;/span&gt;&lt;span class="p"&gt;);&lt;/span&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="w"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="c1"&gt;-- 查询结果
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;LENGTH&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="p"&gt;),&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;LENGTH&lt;/span&gt;&lt;span class="p"&gt;(&lt;/span&gt;&lt;span class="k"&gt;c&lt;/span&gt;&lt;span class="p"&gt;)&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;FROM&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;vc&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 结果: 4, 2
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;FROM&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;vc&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;WHERE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;c&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ab &amp;#39;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 能匹配到
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;SELECT&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;*&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;FROM&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;vc&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="k"&gt;WHERE&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="n"&gt;v&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="s1"&gt;&amp;#39;ab &amp;#39;&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;&lt;span class="w"&gt; &lt;/span&gt;&lt;span class="c1"&gt;-- 不能匹配
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="35-blob-类型"&gt;3.5 BLOB 类型&lt;/h3&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;类型&lt;/th&gt;
+&lt;th&gt;最大大小&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;TINYBLOB&lt;/td&gt;
+&lt;td&gt;255 字节&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;BLOB&lt;/td&gt;
+&lt;td&gt;64KB&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;MEDIUMBLOB&lt;/td&gt;
+&lt;td&gt;16MB&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;LONGBLOB&lt;/td&gt;
+&lt;td&gt;4GB&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="四ddl数据定义语言"&gt;四、DDL（数据定义语言）&lt;/h2&gt;
+&lt;p&gt;Data Definition Language，用于定义和管理数据库对象和结构。&lt;/p&gt;</description></item><item><title>C++学习笔记</title><link>https://lhao4.github.io/posts/c++/c++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</link><pubDate>Mon, 01 Apr 2024 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/c++/c++%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</guid><description>&lt;h1 id="c学习笔记"&gt;C++学习笔记&lt;/h1&gt;
+&lt;hr&gt;
+&lt;h2 id="目录"&gt;目录&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC%E4%B8%80%E9%83%A8%E5%88%86-c%E5%9F%BA%E7%A1%80"&gt;第一部分 C++基础&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC1%E7%AB%A0-c%E7%AE%80%E4%BB%8B"&gt;第1章 C++简介&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC2%E7%AB%A0-%E6%95%B0%E6%8D%AE%E7%B1%BB%E5%9E%8B%E4%B8%8E%E5%8F%98%E9%87%8F"&gt;第2章 数据类型与变量&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC3%E7%AB%A0-%E8%BF%90%E7%AE%97%E7%AC%A6%E4%B8%8E%E8%A1%A8%E8%BE%BE%E5%BC%8F"&gt;第3章 运算符与表达式&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC4%E7%AB%A0-%E6%B5%81%E7%A8%8B%E6%8E%A7%E5%88%B6"&gt;第4章 流程控制&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC5%E7%AB%A0-%E5%87%BD%E6%95%B0"&gt;第5章 函数&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC6%E7%AB%A0-%E6%95%B0%E7%BB%84%E4%B8%8E%E6%8C%87%E9%92%88"&gt;第6章 数组与指针&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC%E4%BA%8C%E9%83%A8%E5%88%86-%E9%9D%A2%E5%90%91%E5%AF%B9%E8%B1%A1%E7%BC%96%E7%A8%8B"&gt;第二部分 面向对象编程&lt;/a&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC7%E7%AB%A0-%E7%B1%BB%E4%B8%8E%E5%AF%B9%E8%B1%A1"&gt;第7章 类与对象&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC8%E7%AB%A0-%E7%BB%A7%E6%89%BF%E4%B8%8E%E5%A4%9A%E6%80%81"&gt;第8章 继承与多态&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC9%E7%AB%A0-%E6%A8%A1%E6%9D%BF"&gt;第9章 模板&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC10%E7%AB%A0-stl%E6%A0%87%E5%87%86%E5%BA%93"&gt;第10章 STL标准库&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC%E4%B8%89%E9%83%A8%E5%88%86-c11%E6%96%B0%E7%89%B9%E6%80%A7"&gt;第三部分 C++11新特性&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC%E5%9B%9B%E9%83%A8%E5%88%86-c14%E6%96%B0%E7%89%B9%E6%80%A7"&gt;第四部分 C++14新特性&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC%E4%BA%94%E9%83%A8%E5%88%86-c17%E6%96%B0%E7%89%B9%E6%80%A7"&gt;第五部分 C++17新特性&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="#%E7%AC%AC%E5%85%AD%E9%83%A8%E5%88%86-c20%E6%96%B0%E7%89%B9%E6%80%A7"&gt;第六部分 C++20新特性&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h1 id="第一部分-c基础"&gt;第一部分 C++基础&lt;/h1&gt;
+&lt;p&gt;本部分介绍C++编程语言的基础知识，包括数据类型、运算符、流程控制、函数、数组和指针等核心概念。&lt;/p&gt;
+&lt;h2 id="第1章-c简介"&gt;第1章 C++简介&lt;/h2&gt;
+&lt;h3 id="11-什么是c"&gt;1.1 什么是C++&lt;/h3&gt;
+&lt;p&gt;C++是一种静态类型的、编译式的、通用的、大小写敏感的、不规则的编程语言，支持过程化编程、面向对象编程和泛型编程。&lt;/p&gt;
+&lt;p&gt;C++被认为是一种中级语言，它综合了高级语言和低级语言的特点。&lt;/p&gt;
+&lt;p&gt;C++是C语言的超集，任何合法的C程序都是合法的C++程序。&lt;/p&gt;
+&lt;h3 id="12-c的历史"&gt;1.2 C++的历史&lt;/h3&gt;
+&lt;p&gt;C++由Bjarne Stroustrup于1979年开始开发，最初命名为「C with Classes」，1983年更名为C++。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;C++标准化历程：&lt;/strong&gt;&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code class="language-mermaid" data-lang="mermaid"&gt;timeline
+title C++标准发展历程
+1998 : C++98 : 第一个国际标准
+2003 : C++03 : 技术修正版
+2011 : C++11 : 重大更新，现代C++的开端
+2014 : C++14 : 小幅更新
+2017 : C++17 : 重要更新
+2020 : C++20 : 重大更新，概念、协程
+2023 : C++23 : 最新标准
+&lt;/code&gt;&lt;/pre&gt;&lt;h3 id="13-第一个c程序"&gt;1.3 第一个C++程序&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-cpp" data-lang="cpp"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="cp"&gt;#include&lt;/span&gt; &lt;span class="cpf"&gt;&amp;lt;iostream&amp;gt;&lt;/span&gt;&lt;span class="cp"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="k"&gt;using&lt;/span&gt; &lt;span class="k"&gt;namespace&lt;/span&gt; &lt;span class="n"&gt;std&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="kt"&gt;int&lt;/span&gt; &lt;span class="nf"&gt;main&lt;/span&gt;&lt;span class="p"&gt;()&lt;/span&gt; &lt;span class="p"&gt;{&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="n"&gt;cout&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="s"&gt;&amp;#34;Hello, World!&amp;#34;&lt;/span&gt; &lt;span class="o"&gt;&amp;lt;&amp;lt;&lt;/span&gt; &lt;span class="n"&gt;endl&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt; &lt;span class="k"&gt;return&lt;/span&gt; &lt;span class="mi"&gt;0&lt;/span&gt;&lt;span class="p"&gt;;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;&lt;span class="p"&gt;}&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;&lt;strong&gt;程序解析：&lt;/strong&gt;&lt;/p&gt;</description></item><item><title>从零搭建 HaoNest：个人博客完整搭建与部署记录</title><link>https://lhao4.github.io/posts/hello-world/</link><pubDate>Mon, 01 Jan 2024 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/hello-world/</guid><description>&lt;p&gt;本文记录 HaoNest 个人站点从零到上线的完整过程，包含环境搭建、主题配置、功能开发、自动部署等所有步骤。&lt;/p&gt;
+&lt;h2 id="站点介绍"&gt;站点介绍&lt;/h2&gt;
+&lt;p&gt;HaoNest 是一个集三大功能于一体的个人站点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;博客&lt;/strong&gt;：Markdown 写作，支持分类、标签、搜索、评论&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;导航&lt;/strong&gt;：收藏常用网站，按类别整理&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;工具&lt;/strong&gt;：内置多种开发工具，无需安装，即开即用&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;技术选型如下：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;模块&lt;/th&gt;
+&lt;th&gt;选择&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;静态站点生成器&lt;/td&gt;
+&lt;td&gt;Hugo&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;主题&lt;/td&gt;
+&lt;td&gt;PaperMod&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;托管&lt;/td&gt;
+&lt;td&gt;GitHub Pages&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;评论&lt;/td&gt;
+&lt;td&gt;Giscus&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;部署&lt;/td&gt;
+&lt;td&gt;GitHub Actions&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;hr&gt;
+&lt;h2 id="一环境准备"&gt;一、环境准备&lt;/h2&gt;
+&lt;h3 id="11-安装必要工具"&gt;1.1 安装必要工具&lt;/h3&gt;
+&lt;p&gt;需要提前安装以下工具：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Git&lt;/strong&gt;：版本管理&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;GitHub CLI&lt;/strong&gt;：命令行操作 GitHub&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Node.js&lt;/strong&gt;：部分工具依赖&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Hugo Extended&lt;/strong&gt;：站点生成器&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;安装 Hugo（Windows）：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;winget install Hugo.Hugo.Extended
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;验证安装：&lt;/p&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;hugo version
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;输出类似 &lt;code&gt;hugo v0.159.1+extended&lt;/code&gt; 即为成功。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="二创建-hugo-项目"&gt;二、创建 Hugo 项目&lt;/h2&gt;
+&lt;h3 id="21-初始化项目"&gt;2.1 初始化项目&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;hugo new site . --force
+&lt;/span&gt;&lt;/span&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;git init
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="22-安装-papermod-主题"&gt;2.2 安装 PaperMod 主题&lt;/h3&gt;
+&lt;div class="highlight"&gt;&lt;pre tabindex="0" class="chroma"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span class="line"&gt;&lt;span class="cl"&gt;git submodule add --depth&lt;span class="o"&gt;=&lt;/span&gt;&lt;span class="m"&gt;1&lt;/span&gt; https://github.com/adityatelange/hugo-PaperMod.git themes/PaperMod
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;h3 id="23-配置-hugotoml"&gt;2.3 配置 hugo.toml&lt;/h3&gt;
+&lt;p&gt;删除默认的 &lt;code&gt;hugo.toml&lt;/code&gt;，新建完整配置：&lt;/p&gt;</description></item><item><title>cURL 转代码</title><link>https://lhao4.github.io/tools/curl/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/curl/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;span class="tool-label" style="margin:0;"&gt;目标语言&lt;/span&gt;
+&lt;select id="langSelect" class="tool-select" onchange="convert()"&gt;
+&lt;option value="python"&gt;Python (requests)&lt;/option&gt;
+&lt;option value="js"&gt;JavaScript (fetch)&lt;/option&gt;
+&lt;option value="go"&gt;Go (net/http)&lt;/option&gt;
+&lt;/select&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyResult()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearAll()"&gt;清空&lt;/button&gt;
+&lt;span id="status" style="font-size:0.85rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 cURL 命令&lt;/div&gt;
+&lt;textarea id="curlInput" rows="12" placeholder="curl -X POST https://api.example.com/users \
+-H 'Content-Type: application/json' \
+-H 'Authorization: Bearer token123' \
+-d '{&amp;quot;name&amp;quot;: &amp;quot;Alice&amp;quot;, &amp;quot;age&amp;quot;: 25}'"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;转换结果 &lt;span id="copyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="codeOutput" rows="12" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+// ── 解析 cURL 命令 ────────────────────────────────────────────
+function parseCurl(raw) {
+// 合并续行符，去掉 curl 前缀
+const line = raw.replace(/\\\n/g, ' ').replace(/\\\r\n/g, ' ').trim();
+const result = { method: 'GET', url: '', headers: {}, body: null, auth: null };
+// tokenize：保留引号内的空格
+const tokens = [];
+let cur = '', inQ = false, qChar = '';
+for (let i = 0; i &lt; line.length; i++) {
+const c = line[i];
+if (inQ) {
+if (c === qChar) { inQ = false; }
+else { cur += c; }
+} else if (c === '"' || c === "'") {
+inQ = true; qChar = c;
+} else if (c === ' ' || c === '\t') {
+if (cur) { tokens.push(cur); cur = ''; }
+} else {
+cur += c;
+}
+}
+if (cur) tokens.push(cur);
+// 跳过 "curl"
+let i = tokens[0] === 'curl' ? 1 : 0;
+while (i &lt; tokens.length) {
+const t = tokens[i];
+if (t === '-X' || t === '--request') {
+result.method = tokens[++i].toUpperCase();
+} else if (t === '-H' || t === '--header') {
+const h = tokens[++i];
+const idx = h.indexOf(':');
+if (idx &gt; -1) {
+const k = h.slice(0, idx).trim();
+const v = h.slice(idx + 1).trim();
+result.headers[k] = v;
+}
+} else if (t === '-d' || t === '--data' || t === '--data-raw' || t === '--data-binary') {
+result.body = tokens[++i];
+if (!result.method || result.method === 'GET') result.method = 'POST';
+} else if (t === '-u' || t === '--user') {
+result.auth = tokens[++i];
+} else if (t === '-A' || t === '--user-agent') {
+result.headers['User-Agent'] = tokens[++i];
+} else if (t === '-b' || t === '--cookie') {
+result.headers['Cookie'] = tokens[++i];
+} else if (!t.startsWith('-')) {
+if (!result.url) result.url = t;
+}
+i++;
+}
+return result;
+}
+// ── 生成各语言代码 ────────────────────────────────────────────
+function toPython(p) {
+const lines = ['import requests', ''];
+const headersStr = Object.keys(p.headers).length
+? 'headers = {\n' + Object.entries(p.headers).map(([k,v]) =&gt; ` '${k}': '${v}'`).join(',\n') + '\n}\n'
+: '';
+if (headersStr) lines.push(headersStr);
+const method = p.method.toLowerCase();
+let call = `response = requests.${method}(\n '${p.url}'`;
+if (Object.keys(p.headers).length) call += ',\n headers=headers';
+if (p.auth) {
+const [u, pw] = p.auth.split(':');
+call += `,\n auth=('${u}', '${pw || ''}')`;
+}
+if (p.body) {
+try { JSON.parse(p.body); call += `,\n json=${pyJson(JSON.parse(p.body))}`; }
+catch { call += `,\n data='${p.body.replace(/'/g, "\\'")}'`; }
+}
+call += '\n)';
+lines.push(call, '', 'print(response.status_code)', 'print(response.json())');
+return lines.join('\n');
+}
+function pyJson(obj, indent) {
+indent = indent || 4;
+const pad = ' '.repeat(indent);
+if (obj === null) return 'None';
+if (typeof obj === 'boolean') return obj ? 'True' : 'False';
+if (typeof obj === 'number') return String(obj);
+if (typeof obj === 'string') return `'${obj.replace(/'/g, "\\'")}'`;
+if (Array.isArray(obj)) {
+if (!obj.length) return '[]';
+return '[\n' + obj.map(v =&gt; pad + ' ' + pyJson(v, indent + 2)).join(',\n') + '\n' + pad + ']';
+}
+const entries = Object.entries(obj).map(([k, v]) =&gt; `${pad} '${k}': ${pyJson(v, indent + 4)}`);
+return '{\n' + entries.join(',\n') + '\n' + pad + '}';
+}
+function toJS(p) {
+const lines = [];
+const opts = { method: p.method };
+if (Object.keys(p.headers).length) opts.headers = p.headers;
+if (p.auth) opts.headers = { ...opts.headers, 'Authorization': 'Basic ' + btoa(p.auth) };
+if (p.body) opts.body = p.body;
+lines.push(`const response = await fetch('${p.url}', ${JSON.stringify(opts, null, 2)});`, '');
+lines.push('const data = await response.json();', 'console.log(data);');
+return lines.join('\n');
+}
+function toGo(p) {
+const lines = ['package main', '', 'import (', '\t"fmt"', '\t"io"', '\t"net/http"'];
+if (p.body) lines.push('\t"strings"');
+lines.push(')', '', 'func main() {');
+if (p.body) {
+lines.push(`\tbody := strings.NewReader(\`${p.body}\`)`);
+lines.push(`\treq, _ := http.NewRequest("${p.method}", "${p.url}", body)`);
+} else {
+lines.push(`\treq, _ := http.NewRequest("${p.method}", "${p.url}", nil)`);
+}
+Object.entries(p.headers).forEach(([k, v]) =&gt; {
+lines.push(`\treq.Header.Set("${k}", "${v}")`);
+});
+if (p.auth) {
+const [u, pw] = p.auth.split(':');
+lines.push(`\treq.SetBasicAuth("${u}", "${pw || ''}")`);
+}
+lines.push(
+'',
+'\tclient := &amp;http.Client{}',
+'\tresp, err := client.Do(req)',
+'\tif err != nil { panic(err) }',
+'\tdefer resp.Body.Close()',
+'',
+'\tbody2, _ := io.ReadAll(resp.Body)',
+'\tfmt.Println(string(body2))',
+'}'
+);
+return lines.join('\n');
+}
+// ── 主转换函数 ────────────────────────────────────────────────
+function convert() {
+const raw = document.getElementById('curlInput').value.trim();
+const status = document.getElementById('status');
+if (!raw) { document.getElementById('codeOutput').value = ''; return; }
+try {
+const parsed = parseCurl(raw);
+if (!parsed.url) throw new Error('未找到 URL');
+const lang = document.getElementById('langSelect').value;
+const code = lang === 'python' ? toPython(parsed)
+: lang === 'js' ? toJS(parsed)
+: toGo(parsed);
+document.getElementById('codeOutput').value = code;
+status.style.color = '#38a169';
+status.textContent = '✓ 转换成功';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+document.getElementById('codeOutput').value = '';
+}
+}
+function copyResult() {
+const val = document.getElementById('codeOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('copyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+function clearAll() {
+document.getElementById('curlInput').value = '';
+document.getElementById('codeOutput').value = '';
+document.getElementById('status').textContent = '';
+}
+// 输入变化自动转换
+document.getElementById('curlInput').addEventListener('input', convert);
+document.getElementById('langSelect').addEventListener('change', convert);
+&lt;/script&gt;</description></item><item><title>IP 查询</title><link>https://lhao4.github.io/tools/ip/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/ip/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;input id="ipInput" type="text" placeholder="输入 IP 地址，留空则查询本机 IP" style="flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:0.9rem;outline:none;"&gt;
+&lt;button class="tool-btn" onclick="queryIP()"&gt;查询&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="queryMyIP()"&gt;查询本机 IP&lt;/button&gt;
+&lt;/div&gt;
+&lt;div id="ipResult" style="margin-top:1.2rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+.ip-card { border:1px solid var(--border); border-radius:8px; padding:1.2rem; background:var(--entry); margin-top:0.8rem; }
+.ip-row { display:flex; gap:1rem; padding:0.4rem 0; border-bottom:1px solid var(--border); font-size:0.9rem; }
+.ip-row:last-child { border-bottom:none; }
+.ip-key { color:var(--secondary); min-width:100px; }
+.ip-val { font-weight:500; word-break:break-all; }
+&lt;/style&gt;
+&lt;script&gt;
+async function queryIP() {
+const ip = document.getElementById('ipInput').value.trim();
+const result = document.getElementById('ipResult');
+result.innerHTML = '&lt;span style="color:var(--secondary)"&gt;查询中...&lt;/span&gt;';
+try {
+const url = ip ? `https://ipapi.co/${ip}/json/` : 'https://ipapi.co/json/';
+const res = await fetch(url);
+const data = await res.json();
+if (data.error) throw new Error(data.reason || '查询失败');
+result.innerHTML = `&lt;div class="ip-card"&gt;
+${row('IP 地址', data.ip)}
+${row('城市', data.city)}
+${row('地区', data.region)}
+${row('国家', data.country_name + (data.country ? ` (${data.country})` : ''))}
+${row('运营商', data.org || data.asn || '-')}
+${row('时区', data.timezone)}
+${row('经纬度', data.latitude &amp;&amp; data.longitude ? `${data.latitude}, ${data.longitude}` : '-')}
+&lt;/div&gt;`;
+} catch(e) {
+result.innerHTML = `&lt;span style="color:#e53e3e"&gt;查询失败：${e.message}&lt;/span&gt;`;
+}
+}
+function queryMyIP() {
+document.getElementById('ipInput').value = '';
+queryIP();
+}
+function row(k, v) {
+return `&lt;div class="ip-row"&gt;&lt;span class="ip-key"&gt;${k}&lt;/span&gt;&lt;span class="ip-val"&gt;${v || '-'}&lt;/span&gt;&lt;/div&gt;`;
+}
+&lt;/script&gt;</description></item><item><title>JSON 格式化</title><link>https://lhao4.github.io/tools/json/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/json/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="formatJSON()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn" onclick="compressJSON()"&gt;压缩&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyJSON()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearJSON()"&gt;清空&lt;/button&gt;
+&lt;span id="jsonStatus" style="font-size:0.85rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 JSON&lt;/div&gt;
+&lt;textarea id="jsonInput" rows="20" placeholder='{"key": "value"}'&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="jsonCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="jsonOutput" rows="20" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function formatJSON() {
+const status = document.getElementById('jsonStatus');
+try {
+const obj = JSON.parse(document.getElementById('jsonInput').value);
+document.getElementById('jsonOutput').value = JSON.stringify(obj, null, 2);
+status.style.color = '#38a169';
+status.textContent = '✓ 合法 JSON';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+document.getElementById('jsonOutput').value = '';
+}
+}
+function compressJSON() {
+const status = document.getElementById('jsonStatus');
+try {
+const obj = JSON.parse(document.getElementById('jsonInput').value);
+document.getElementById('jsonOutput').value = JSON.stringify(obj);
+status.style.color = '#38a169';
+status.textContent = '✓ 压缩成功';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+}
+}
+function clearJSON() {
+document.getElementById('jsonInput').value = '';
+document.getElementById('jsonOutput').value = '';
+document.getElementById('jsonStatus').textContent = '';
+}
+function copyJSON() {
+const val = document.getElementById('jsonOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('jsonCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>JWT 解析</title><link>https://lhao4.github.io/tools/jwt/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/jwt/</guid><description>&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 JWT Token&lt;/div&gt;
+&lt;textarea id="jwtInput" rows="5" placeholder="粘贴 JWT Token..." oninput="parseJWT()"&gt;&lt;/textarea&gt;
+&lt;div style="margin-top:1.2rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label" style="color:#4299e1;"&gt;Header&lt;/div&gt;
+&lt;textarea id="jwtHeader" rows="8" readonly style="font-family:monospace;font-size:0.85rem;" onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label" style="color:#9f7aea;"&gt;Payload&lt;/div&gt;
+&lt;textarea id="jwtPayload" rows="8" readonly style="font-family:monospace;font-size:0.85rem;" onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div style="margin-top:1rem;"&gt;
+&lt;div class="tool-label"&gt;Signature&lt;/div&gt;
+&lt;input id="jwtSig" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div id="jwtInfo" style="margin-top:0.8rem;font-size:0.85rem;"&gt;&lt;/div&gt;
+&lt;div id="jwtErr" style="color:#e53e3e;font-size:0.85rem;margin-top:0.5rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function b64decode(str) {
+str = str.replace(/-/g, '+').replace(/_/g, '/');
+while (str.length % 4) str += '=';
+return decodeURIComponent(atob(str).split('').map(c =&gt;
+'%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+).join(''));
+}
+function parseJWT() {
+const token = document.getElementById('jwtInput').value.trim();
+const err = document.getElementById('jwtErr');
+const info = document.getElementById('jwtInfo');
+document.getElementById('jwtHeader').value = '';
+document.getElementById('jwtPayload').value = '';
+document.getElementById('jwtSig').value = '';
+err.textContent = ''; info.innerHTML = '';
+if (!token) return;
+const parts = token.split('.');
+if (parts.length !== 3) { err.textContent = '格式错误：JWT 应由三段组成（header.payload.signature）'; return; }
+try {
+const header = JSON.parse(b64decode(parts[0]));
+const payload = JSON.parse(b64decode(parts[1]));
+document.getElementById('jwtHeader').value = JSON.stringify(header, null, 2);
+document.getElementById('jwtPayload').value = JSON.stringify(payload, null, 2);
+document.getElementById('jwtSig').value = parts[2];
+const tips = [];
+if (payload.exp) {
+const exp = new Date(payload.exp * 1000);
+const expired = exp &lt; new Date();
+tips.push(`&lt;span style="color:${expired?'#e53e3e':'#38a169'}"&gt;${expired?'⚠ 已过期':'✓ 未过期'}（exp: ${exp.toLocaleString()}）&lt;/span&gt;`);
+}
+if (payload.iat) tips.push(`签发时间：${new Date(payload.iat * 1000).toLocaleString()}`);
+if (payload.sub) tips.push(`Subject: ${payload.sub}`);
+if (header.alg) tips.push(`算法：${header.alg}`);
+info.innerHTML = tips.join('　');
+} catch(e) {
+err.textContent = '解析失败：' + e.message;
+}
+}
+&lt;/script&gt;</description></item><item><title>MD5 / SHA 加密</title><link>https://lhao4.github.io/tools/hash/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/hash/</guid><description>&lt;div&gt;
+&lt;div class="tool-label"&gt;输入文本&lt;/div&gt;
+&lt;textarea id="hashInput" rows="6" placeholder="输入需要计算哈希的文本..."&gt;&lt;/textarea&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="calcAll()"&gt;计算&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="document.getElementById('hashInput').value='';clearResults()"&gt;清空&lt;/button&gt;
+&lt;/div&gt;
+&lt;div style="margin-top:1.2rem;display:flex;flex-direction:column;gap:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;MD5&lt;/div&gt;
+&lt;input id="outMD5" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;SHA-1&lt;/div&gt;
+&lt;input id="outSHA1" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;SHA-256&lt;/div&gt;
+&lt;input id="outSHA256" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;SHA-512&lt;/div&gt;
+&lt;input id="outSHA512" type="text" readonly onclick="this.select()" style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;word-break:break-all;"&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+function clearResults() {
+['outMD5','outSHA1','outSHA256','outSHA512'].forEach(id =&gt; document.getElementById(id).value = '');
+}
+function calcAll() {
+const text = document.getElementById('hashInput').value;
+document.getElementById('outMD5').value = CryptoJS.MD5(text).toString();
+document.getElementById('outSHA1').value = CryptoJS.SHA1(text).toString();
+document.getElementById('outSHA256').value = CryptoJS.SHA256(text).toString();
+document.getElementById('outSHA512').value = CryptoJS.SHA512(text).toString();
+}
+&lt;/script&gt;</description></item><item><title>SQL 格式化</title><link>https://lhao4.github.io/tools/sql/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/sql/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="formatSQL()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn" onclick="compressSQL()"&gt;压缩&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copySQL()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearSQL()"&gt;清空&lt;/button&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 SQL&lt;/div&gt;
+&lt;textarea id="sqlInput" rows="20" placeholder="SELECT * FROM users WHERE id = 1;"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="sqlCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="sqlOutput" rows="20" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script src="https://cdnjs.cloudflare.com/ajax/libs/sql-formatter/15.4.2/sql-formatter.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;
+function formatSQL() {
+const input = document.getElementById('sqlInput').value;
+try {
+document.getElementById('sqlOutput').value = sqlFormatter.format(input, { language: 'sql', tabWidth: 2 });
+} catch(e) {
+document.getElementById('sqlOutput').value = '格式化失败: ' + e.message;
+}
+}
+function compressSQL() {
+const input = document.getElementById('sqlInput').value;
+document.getElementById('sqlOutput').value = input.replace(/\s+/g, ' ').trim();
+}
+function clearSQL() {
+document.getElementById('sqlInput').value = '';
+document.getElementById('sqlOutput').value = '';
+}
+function copySQL() {
+const val = document.getElementById('sqlOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('sqlCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>SVG 编辑优化</title><link>https://lhao4.github.io/tools/svg/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/svg/</guid><description>&lt;div&gt;
+&lt;!-- 操作栏 --&gt;
+&lt;div class="tool-row" style="flex-wrap:wrap;gap:0.5rem;"&gt;
+&lt;button class="tool-btn" onclick="optimizeSVG()"&gt;优化压缩&lt;/button&gt;
+&lt;button class="tool-btn" onclick="formatSVG()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyOutput()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearAll()"&gt;清空&lt;/button&gt;
+&lt;label style="display:flex;align-items:center;gap:0.3rem;font-size:0.85rem;cursor:pointer;"&gt;
+&lt;input type="checkbox" id="rmComments" checked&gt; 移除注释
+&lt;/label&gt;
+&lt;label style="display:flex;align-items:center;gap:0.3rem;font-size:0.85rem;cursor:pointer;"&gt;
+&lt;input type="checkbox" id="rmMetadata" checked&gt; 移除 metadata/title/desc
+&lt;/label&gt;
+&lt;label style="display:flex;align-items:center;gap:0.3rem;font-size:0.85rem;cursor:pointer;"&gt;
+&lt;input type="checkbox" id="rmXmlDecl" checked&gt; 移除 XML 声明
+&lt;/label&gt;
+&lt;/div&gt;
+&lt;!-- 尺寸信息 --&gt;
+&lt;div id="sizeInfo" style="font-size:0.82rem;color:var(--secondary);margin:0.4rem 0 0.6rem;"&gt;&lt;/div&gt;
+&lt;!-- 双栏：左输入右输出 --&gt;
+&lt;div class="tool-cols"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 SVG&lt;/div&gt;
+&lt;textarea id="svgInput" rows="18" placeholder="粘贴 SVG 代码..." oninput="onInputChange()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;!-- Tab 切换 --&gt;
+&lt;div style="display:flex;gap:0;margin-bottom:0.5rem;border-bottom:1px solid var(--border);"&gt;
+&lt;button class="svg-tab active" id="tab-code" onclick="switchTab('code')"&gt;优化结果&lt;/button&gt;
+&lt;button class="svg-tab" id="tab-preview" onclick="switchTab('preview')"&gt;预览&lt;/button&gt;
+&lt;/div&gt;
+&lt;div id="panel-code"&gt;
+&lt;textarea id="svgOutput" rows="17" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div id="panel-preview" style="display:none;"&gt;
+&lt;div id="svgPreview" style="
+min-height:300px;border:1px solid var(--border);border-radius:6px;
+background:repeating-conic-gradient(#ccc 0% 25%, transparent 0% 50%) 0 0/20px 20px;
+display:flex;align-items:center;justify-content:center;overflow:auto;padding:1rem;"&gt;
+&lt;span style="color:var(--secondary);font-size:0.9rem;"&gt;预览区域&lt;/span&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;span id="copyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+.svg-tab {
+padding: 0.3rem 1rem;
+border: none;
+background: transparent;
+color: var(--secondary);
+cursor: pointer;
+font-size: 0.9rem;
+border-bottom: 2px solid transparent;
+margin-bottom: -1px;
+}
+.svg-tab.active {
+color: var(--primary);
+border-bottom-color: var(--primary);
+font-weight: 600;
+}
+&lt;/style&gt;
+&lt;script&gt;
+// ── Tab 切换 ──────────────────────────────────────────────────
+function switchTab(name) {
+document.getElementById('panel-code').style.display = name === 'code' ? '' : 'none';
+document.getElementById('panel-preview').style.display = name === 'preview' ? '' : 'none';
+document.getElementById('tab-code').classList.toggle('active', name === 'code');
+document.getElementById('tab-preview').classList.toggle('active', name === 'preview');
+if (name === 'preview') renderPreview();
+}
+// ── 渲染预览 ─────────────────────────────────────────────────
+function renderPreview() {
+const src = document.getElementById('svgOutput').value ||
+document.getElementById('svgInput').value;
+const box = document.getElementById('svgPreview');
+if (!src.trim()) { box.innerHTML = '&lt;span style="color:var(--secondary)"&gt;暂无内容&lt;/span&gt;'; return; }
+// 安全渲染：只允许 SVG 标签
+if (!/&lt;svg[\s&gt;]/i.test(src)) {
+box.innerHTML = '&lt;span style="color:#e53e3e"&gt;未检测到有效 SVG&lt;/span&gt;';
+return;
+}
+box.innerHTML = src;
+// 让 SVG 自适应容器
+const svgEl = box.querySelector('svg');
+if (svgEl) {
+svgEl.style.maxWidth = '100%';
+svgEl.style.maxHeight = '400px';
+}
+}
+// ── XML 格式化（纯 JS 实现）──────────────────────────────────
+function formatXML(xml) {
+let indent = 0;
+const tab = ' ';
+return xml
+.replace(/&gt;\s*&lt;/g, '&gt;\n&lt;')
+.split('\n')
+.map(line =&gt; {
+line = line.trim();
+if (!line) return '';
+if (/^&lt;\//.test(line)) indent--;
+const result = tab.repeat(Math.max(0, indent)) + line;
+if (/^&lt;[^/?!]/.test(line) &amp;&amp; !/\/&gt;$/.test(line) &amp;&amp; !/&lt;\//.test(line)) indent++;
+return result;
+})
+.filter(Boolean)
+.join('\n');
+}
+// ── SVG 优化（纯 JS）─────────────────────────────────────────
+function doOptimize(svg) {
+const rmComments = document.getElementById('rmComments').checked;
+const rmMetadata = document.getElementById('rmMetadata').checked;
+const rmXmlDecl = document.getElementById('rmXmlDecl').checked;
+// 移除 XML 声明
+if (rmXmlDecl) svg = svg.replace(/&lt;\?xml[^?]*\?&gt;\s*/gi, '');
+// 移除注释
+if (rmComments) svg = svg.replace(/&lt;!--[\s\S]*?--&gt;/g, '');
+// 移除 metadata / title / desc
+if (rmMetadata) {
+svg = svg.replace(/&lt;metadata[\s\S]*?&lt;\/metadata&gt;/gi, '');
+svg = svg.replace(/&lt;title[\s\S]*?&lt;\/title&gt;/gi, '');
+svg = svg.replace(/&lt;desc[\s\S]*?&lt;\/desc&gt;/gi, '');
+}
+// 移除多余空行和首尾空白
+svg = svg.replace(/^\s+/gm, '').replace(/\s+$/gm, '').replace(/\n{2,}/g, '\n');
+// 压缩数字：50.000→50，1.500→1.5，0.5→.5
+svg = svg.replace(/(\d+\.\d*[1-9])0+/g, '$1'); // 1.500 → 1.5
+svg = svg.replace(/(\d+)\.0+(?=[^\d]|$)/g, '$1'); // 50.000 → 50
+svg = svg.replace(/(?&lt;!\d)0(\.\d+)/g, '$1'); // 0.5 → .5
+// 压缩为单行（移除标签间空白）
+svg = svg.replace(/&gt;\s+&lt;/g, '&gt;&lt;').replace(/\s{2,}/g, ' ').trim();
+return svg;
+}
+// ── 按钮操作 ─────────────────────────────────────────────────
+function optimizeSVG() {
+const input = document.getElementById('svgInput').value.trim();
+if (!input) return;
+try {
+const result = doOptimize(input);
+document.getElementById('svgOutput').value = result;
+showSizeInfo(input, result);
+} catch(e) {
+document.getElementById('svgOutput').value = '错误：' + e.message;
+}
+}
+function formatSVG() {
+const input = document.getElementById('svgInput').value.trim();
+if (!input) return;
+try {
+const result = formatXML(input);
+document.getElementById('svgOutput').value = result;
+showSizeInfo(input, result);
+} catch(e) {
+document.getElementById('svgOutput').value = '错误：' + e.message;
+}
+}
+function showSizeInfo(before, after) {
+const b = new Blob([before]).size;
+const a = new Blob([after]).size;
+const pct = ((b - a) / b * 100).toFixed(1);
+const color = a &lt; b ? '#38a169' : 'var(--secondary)';
+document.getElementById('sizeInfo').innerHTML =
+`原始：&lt;b&gt;${fmt(b)}&lt;/b&gt; &amp;nbsp;→&amp;nbsp; 结果：&lt;b&gt;${fmt(a)}&lt;/b&gt; &amp;nbsp;` +
+`&lt;span style="color:${color}"&gt;${a &lt; b ? '↓ 减少 ' + pct + '%' : '大小无变化'}&lt;/span&gt;`;
+}
+function fmt(bytes) {
+return bytes &lt; 1024 ? bytes + ' B' : (bytes / 1024).toFixed(1) + ' KB';
+}
+function copyOutput() {
+const val = document.getElementById('svgOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('copyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+function clearAll() {
+document.getElementById('svgInput').value = '';
+document.getElementById('svgOutput').value = '';
+document.getElementById('sizeInfo').textContent = '';
+document.getElementById('svgPreview').innerHTML =
+'&lt;span style="color:var(--secondary);font-size:0.9rem;"&gt;预览区域&lt;/span&gt;';
+}
+function onInputChange() {
+// 实时更新预览（如果预览 tab 激活）
+if (document.getElementById('panel-preview').style.display !== 'none') {
+renderPreview();
+}
+}
+&lt;/script&gt;</description></item><item><title>URL 编解码</title><link>https://lhao4.github.io/tools/url/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/url/</guid><description>&lt;div class="tool-cols"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入&lt;/div&gt;
+&lt;textarea id="urlInput" rows="10" placeholder="输入需要编码或解码的内容..."&gt;&lt;/textarea&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="urlEncode()"&gt;编码&lt;/button&gt;
+&lt;button class="tool-btn" onclick="urlDecode()"&gt;解码&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="urlSwap()"&gt;⇄ 互换&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="urlClear()"&gt;清空&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="urlCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="urlOutput" rows="10" placeholder="结果将显示在这里..." readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyUrl()"&gt;复制结果&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id="urlErr" style="color:#e53e3e;font-size:0.85rem;margin-top:0.5rem;"&gt;&lt;/div&gt;
+&lt;script&gt;
+function urlEncode() {
+document.getElementById('urlErr').textContent = '';
+document.getElementById('urlOutput').value = encodeURIComponent(document.getElementById('urlInput').value);
+}
+function urlDecode() {
+try {
+document.getElementById('urlErr').textContent = '';
+document.getElementById('urlOutput').value = decodeURIComponent(document.getElementById('urlInput').value);
+} catch(e) {
+document.getElementById('urlErr').textContent = '解码失败，请检查输入是否为有效的编码字符串';
+}
+}
+function urlSwap() {
+const a = document.getElementById('urlInput'), b = document.getElementById('urlOutput');
+[a.value, b.value] = [b.value, a.value];
+}
+function urlClear() {
+document.getElementById('urlInput').value = '';
+document.getElementById('urlOutput').value = '';
+document.getElementById('urlErr').textContent = '';
+}
+function copyUrl() {
+const val = document.getElementById('urlOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('urlCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>UUID 生成</title><link>https://lhao4.github.io/tools/uuid/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/uuid/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;label style="font-size:0.9rem;"&gt;生成数量：&lt;/label&gt;
+&lt;input id="uuidCount" type="number" value="10" min="1" max="100" style="width:80px;padding:0.4rem 0.6rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;"&gt;
+&lt;label style="font-size:0.9rem;margin-left:0.5rem;"&gt;
+&lt;input type="checkbox" id="uuidUpper"&gt; 大写
+&lt;/label&gt;
+&lt;label style="font-size:0.9rem;margin-left:0.5rem;"&gt;
+&lt;input type="checkbox" id="uuidNoDash"&gt; 去除连字符
+&lt;/label&gt;
+&lt;button class="tool-btn" onclick="genUUIDs()"&gt;生成&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyAll()"&gt;复制全部&lt;/button&gt;
+&lt;/div&gt;
+&lt;div class="tool-label" style="margin-top:0.8rem;"&gt;结果 &lt;span id="uuidCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="uuidOutput" rows="16" readonly onclick="this.select()" style="font-family:monospace;font-size:0.85rem;"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function uuidv4() {
+return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =&gt;
+(c ^ crypto.getRandomValues(new Uint8Array(1))[0] &amp; 15 &gt;&gt; c / 4).toString(16)
+);
+}
+function genUUIDs() {
+const count = Math.min(100, Math.max(1, parseInt(document.getElementById('uuidCount').value) || 1));
+const upper = document.getElementById('uuidUpper').checked;
+const noDash = document.getElementById('uuidNoDash').checked;
+const results = [];
+for (let i = 0; i &lt; count; i++) {
+let id = uuidv4();
+if (noDash) id = id.replace(/-/g, '');
+if (upper) id = id.toUpperCase();
+results.push(id);
+}
+document.getElementById('uuidOutput').value = results.join('\n');
+}
+function copyAll() {
+const val = document.getElementById('uuidOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('uuidCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+genUUIDs();
+&lt;/script&gt;</description></item><item><title>XML 格式化</title><link>https://lhao4.github.io/tools/xml/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/xml/</guid><description>&lt;div&gt;
+&lt;div class="tool-row"&gt;
+&lt;button class="tool-btn" onclick="formatXML()"&gt;格式化&lt;/button&gt;
+&lt;button class="tool-btn" onclick="compressXML()"&gt;压缩&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="copyXML()"&gt;复制结果&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="clearXML()"&gt;清空&lt;/button&gt;
+&lt;span id="xmlStatus" style="font-size:0.85rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-cols" style="margin-top:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;输入 XML&lt;/div&gt;
+&lt;textarea id="xmlInput" rows="20" placeholder="&lt;root&gt;&lt;item&gt;value&lt;/item&gt;&lt;/root&gt;"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;结果 &lt;span id="xmlCopyTip" style="color:#38a169;font-size:0.8rem;"&gt;&lt;/span&gt;&lt;/div&gt;
+&lt;textarea id="xmlOutput" rows="20" readonly onclick="this.select()"&gt;&lt;/textarea&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function formatXML() {
+const status = document.getElementById('xmlStatus');
+const input = document.getElementById('xmlInput').value.trim();
+try {
+const parser = new DOMParser();
+const doc = parser.parseFromString(input, 'application/xml');
+const err = doc.querySelector('parsererror');
+if (err) throw new Error(err.textContent.split('\n')[0]);
+document.getElementById('xmlOutput').value = formatXMLStr(input);
+status.style.color = '#38a169';
+status.textContent = '✓ 合法 XML';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+document.getElementById('xmlOutput').value = '';
+}
+}
+function formatXMLStr(xml) {
+let formatted = '', indent = '';
+xml.split(/&gt;\s*&lt;/).forEach(node =&gt; {
+if (node.match(/^\/\w/)) indent = indent.slice(2);
+formatted += indent + '&lt;' + node + '&gt;\n';
+if (node.match(/^&lt;?\w[^/]*[^/]$/) &amp;&amp; !node.startsWith('?')) indent += ' ';
+});
+return formatted.slice(1, -2);
+}
+function compressXML() {
+const status = document.getElementById('xmlStatus');
+const input = document.getElementById('xmlInput').value.trim();
+try {
+const parser = new DOMParser();
+const doc = parser.parseFromString(input, 'application/xml');
+if (doc.querySelector('parsererror')) throw new Error('无效 XML');
+document.getElementById('xmlOutput').value = input.replace(/&gt;\s+&lt;/g, '&gt;&lt;').replace(/\s+/g, ' ').trim();
+status.style.color = '#38a169';
+status.textContent = '✓ 压缩成功';
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+}
+}
+function clearXML() {
+document.getElementById('xmlInput').value = '';
+document.getElementById('xmlOutput').value = '';
+document.getElementById('xmlStatus').textContent = '';
+}
+function copyXML() {
+const val = document.getElementById('xmlOutput').value;
+if (!val) return;
+navigator.clipboard.writeText(val).then(() =&gt; {
+const tip = document.getElementById('xmlCopyTip');
+tip.textContent = '已复制';
+setTimeout(() =&gt; tip.textContent = '', 2000);
+});
+}
+&lt;/script&gt;</description></item><item><title>导航</title><link>https://lhao4.github.io/nav/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/nav/</guid><description/></item><item><title>我的收藏</title><link>https://lhao4.github.io/favorites/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/favorites/</guid><description/></item><item><title>时间戳转换</title><link>https://lhao4.github.io/tools/timestamp/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/timestamp/</guid><description>&lt;div&gt;
+&lt;div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;"&gt;
+&lt;div&gt;
+&lt;h3 style="margin-top:0;font-size:1rem;"&gt;时间戳 → 日期&lt;/h3&gt;
+&lt;div class="tool-label"&gt;时间戳（秒或毫秒）&lt;/div&gt;
+&lt;div class="tool-row"&gt;
+&lt;input id="tsInput" type="text" placeholder="如：1700000000" style="flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:0.9rem;outline:none;"&gt;
+&lt;button class="tool-btn" onclick="ts2date()"&gt;转换&lt;/button&gt;
+&lt;button class="tool-btn tool-btn-secondary" onclick="useNow()"&gt;当前&lt;/button&gt;
+&lt;/div&gt;
+&lt;div id="tsResult" style="margin-top:0.8rem;font-size:0.9rem;line-height:2;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;pre&gt;&lt;code&gt;&amp;lt;div&amp;gt;
+&amp;lt;h3 style=&amp;quot;margin-top:0;font-size:1rem;&amp;quot;&amp;gt;日期 → 时间戳&amp;lt;/h3&amp;gt;
+&amp;lt;div class=&amp;quot;tool-label&amp;quot;&amp;gt;日期时间&amp;lt;/div&amp;gt;
+&amp;lt;div class=&amp;quot;tool-row&amp;quot;&amp;gt;
+&amp;lt;input id=&amp;quot;dateInput&amp;quot; type=&amp;quot;datetime-local&amp;quot; style=&amp;quot;flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:0.9rem;outline:none;&amp;quot;&amp;gt;
+&amp;lt;button class=&amp;quot;tool-btn&amp;quot; onclick=&amp;quot;date2ts()&amp;quot;&amp;gt;转换&amp;lt;/button&amp;gt;
+&amp;lt;/div&amp;gt;
+&amp;lt;div id=&amp;quot;dateResult&amp;quot; style=&amp;quot;margin-top:0.8rem;font-size:0.9rem;line-height:2;&amp;quot;&amp;gt;&amp;lt;/div&amp;gt;
+&amp;lt;/div&amp;gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;div style="margin-top:2rem;padding:1rem;border:1px solid var(--border);border-radius:8px;background:var(--entry);"&gt;
+&lt;div style="font-size:0.85rem;color:var(--secondary);margin-bottom:0.5rem;"&gt;当前时间&lt;/div&gt;
+&lt;div id="nowDisplay" style="font-size:1.1rem;font-family:monospace;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function pad(n) { return String(n).padStart(2,'0'); }
+function fmt(d) {
+return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+function ts2date() {
+let ts = document.getElementById('tsInput').value.trim();
+if (!ts) return;
+ts = parseInt(ts);
+if (ts &lt; 1e10) ts *= 1000;
+const d = new Date(ts);
+if (isNaN(d)) { document.getElementById('tsResult').innerHTML = '&lt;span style="color:#e53e3e"&gt;无效时间戳&lt;/span&gt;'; return; }
+document.getElementById('tsResult').innerHTML =
+`本地时间：&lt;strong&gt;${fmt(d)}&lt;/strong&gt;&lt;br&gt;UTC 时间：&lt;strong&gt;${d.toUTCString()}&lt;/strong&gt;&lt;br&gt;ISO 8601：&lt;strong&gt;${d.toISOString()}&lt;/strong&gt;`;
+}
+function date2ts() {
+const val = document.getElementById('dateInput').value;
+if (!val) return;
+const d = new Date(val);
+document.getElementById('dateResult').innerHTML =
+`秒级时间戳：&lt;strong&gt;${Math.floor(d.getTime()/1000)}&lt;/strong&gt;&lt;br&gt;毫秒时间戳：&lt;strong&gt;${d.getTime()}&lt;/strong&gt;`;
+}
+function useNow() {
+document.getElementById('tsInput').value = Math.floor(Date.now()/1000);
+ts2date();
+}
+function updateNow() {
+const d = new Date();
+document.getElementById('nowDisplay').innerHTML =
+`${fmt(d)}&amp;emsp;秒级：${Math.floor(d.getTime()/1000)}&amp;emsp;毫秒：${d.getTime()}`;
+}
+updateNow();
+setInterval(updateNow, 1000);
+// 初始化 datetime-local 为当前时间
+const now = new Date();
+now.setSeconds(0,0);
+document.getElementById('dateInput').value = now.toISOString().slice(0,16);
+&lt;/script&gt;</description></item><item><title>正则测试</title><link>https://lhao4.github.io/tools/regex/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/regex/</guid><description>&lt;div&gt;
+&lt;div style="display:grid;grid-template-columns:1fr auto auto;gap:0.6rem;align-items:center;margin-bottom:0.8rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;正则表达式&lt;/div&gt;
+&lt;div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:var(--code-bg);"&gt;
+&lt;span style="padding:0 0.5rem;color:var(--secondary);font-size:1.2rem;font-family:monospace;"&gt;/&lt;/span&gt;
+&lt;input id="regexPattern" type="text" placeholder="输入正则..." oninput="testRegex()" style="flex:1;border:none;background:transparent;color:inherit;padding:0.5rem 0;font-family:monospace;font-size:0.95rem;outline:none;"&gt;
+&lt;span style="padding:0 0.5rem;color:var(--secondary);font-size:1.2rem;font-family:monospace;"&gt;/&lt;/span&gt;
+&lt;input id="regexFlags" type="text" value="g" placeholder="flags" oninput="testRegex()" style="width:60px;border:none;border-left:1px solid var(--border);background:transparent;color:inherit;padding:0.5rem;font-family:monospace;outline:none;"&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div class="tool-label"&gt;测试文本&lt;/div&gt;
+&lt;textarea id="regexText" rows="8" placeholder="输入要测试的文本..." oninput="testRegex()"&gt;&lt;/textarea&gt;
+&lt;div class="tool-row" style="margin-top:0.8rem;"&gt;
+&lt;span id="regexStatus" style="font-size:0.9rem;"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="tool-label" style="margin-top:0.8rem;"&gt;匹配结果高亮&lt;/div&gt;
+&lt;div id="regexHighlight" style="min-height:80px;padding:0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);font-family:monospace;font-size:0.9rem;white-space:pre-wrap;word-break:break-all;line-height:1.6;"&gt;&lt;/div&gt;
+&lt;div class="tool-label" style="margin-top:0.8rem;"&gt;匹配详情&lt;/div&gt;
+&lt;div id="regexMatches" style="font-family:monospace;font-size:0.85rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;style&gt;
+.regex-match { background: #f6e05e; color: #1a1a1a; border-radius: 2px; }
+.dark .regex-match, [data-theme=dark] .regex-match { background: #d69e2e; color: #1a1a1a; }
+.match-item { padding:0.3rem 0.6rem; margin:0.2rem 0; border:1px solid var(--border); border-radius:4px; background:var(--entry); }
+&lt;/style&gt;
+&lt;script&gt;
+function testRegex() {
+const pattern = document.getElementById('regexPattern').value;
+const flags = document.getElementById('regexFlags').value;
+const text = document.getElementById('regexText').value;
+const status = document.getElementById('regexStatus');
+const highlight = document.getElementById('regexHighlight');
+const matchesDiv = document.getElementById('regexMatches');
+if (!pattern) {
+highlight.textContent = text;
+matchesDiv.innerHTML = '';
+status.textContent = '';
+return;
+}
+try {
+const regex = new RegExp(pattern, flags.replace(/[^gimsuy]/g, ''));
+const matches = [...text.matchAll(new RegExp(pattern, flags.includes('g') ? flags : flags + 'g'))];
+status.style.color = '#38a169';
+status.textContent = `✓ 共匹配 ${matches.length} 处`;
+// highlight
+let html = '', last = 0;
+for (const m of matches) {
+html += escHtml(text.slice(last, m.index));
+html += `&lt;mark class="regex-match"&gt;${escHtml(m[0])}&lt;/mark&gt;`;
+last = m.index + m[0].length;
+}
+html += escHtml(text.slice(last));
+highlight.innerHTML = html;
+// details
+matchesDiv.innerHTML = matches.slice(0, 50).map((m, i) =&gt;
+`&lt;div class="match-item"&gt;[${i+1}] 位置 ${m.index}：&lt;strong&gt;${escHtml(m[0])}&lt;/strong&gt;${m.length &gt; 1 ? '　分组：' + m.slice(1).map((g,j)=&gt;`$${j+1}=${escHtml(g??'undefined')}`).join(', ') : ''}&lt;/div&gt;`
+).join('') + (matches.length &gt; 50 ? `&lt;div style="color:var(--secondary);font-size:0.8rem;"&gt;仅显示前 50 条&lt;/div&gt;` : '');
+} catch(e) {
+status.style.color = '#e53e3e';
+status.textContent = '✗ ' + e.message;
+highlight.textContent = text;
+matchesDiv.innerHTML = '';
+}
+}
+function escHtml(s) {
+return (s||'').replace(/&amp;/g,'&amp;amp;').replace(/&lt;/g,'&amp;lt;').replace(/&gt;/g,'&amp;gt;');
+}
+&lt;/script&gt;</description></item><item><title>进制转换</title><link>https://lhao4.github.io/tools/base/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/tools/base/</guid><description>&lt;div&gt;
+&lt;div class="tool-label"&gt;输入数值&lt;/div&gt;
+&lt;div class="tool-row"&gt;
+&lt;input id="inputVal" type="text" placeholder="输入数字..." style="flex:1;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-size:1rem;outline:none;" oninput="convert(this.value, document.getElementById('fromBase').value)"&gt;
+&lt;select id="fromBase" onchange="convert(document.getElementById('inputVal').value, this.value)" style="padding:0.5rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;"&gt;
+&lt;option value="2"&gt;二进制&lt;/option&gt;
+&lt;option value="8"&gt;八进制&lt;/option&gt;
+&lt;option value="10" selected&gt;十进制&lt;/option&gt;
+&lt;option value="16"&gt;十六进制&lt;/option&gt;
+&lt;/select&gt;
+&lt;/div&gt;
+&lt;div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-top:1rem;"&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;二进制 (Base 2)&lt;/div&gt;
+&lt;input id="out2" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;八进制 (Base 8)&lt;/div&gt;
+&lt;input id="out8" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;十进制 (Base 10)&lt;/div&gt;
+&lt;input id="out10" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;div&gt;
+&lt;div class="tool-label"&gt;十六进制 (Base 16)&lt;/div&gt;
+&lt;input id="out16" type="text" readonly style="width:100%;box-sizing:border-box;padding:0.5rem 0.8rem;border:1px solid var(--border);border-radius:6px;background:var(--code-bg);color:inherit;font-family:monospace;" onclick="this.select()"&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;div id="errMsg" style="color:#e53e3e;font-size:0.85rem;margin-top:0.5rem;"&gt;&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+function convert(val, base) {
+const err = document.getElementById('errMsg');
+['out2','out8','out10','out16'].forEach(id =&gt; document.getElementById(id).value = '');
+if (!val.trim()) { err.textContent = ''; return; }
+try {
+const decimal = parseInt(val.trim(), parseInt(base));
+if (isNaN(decimal)) throw new Error('无效输入');
+err.textContent = '';
+document.getElementById('out2').value = decimal.toString(2);
+document.getElementById('out8').value = decimal.toString(8);
+document.getElementById('out10').value = decimal.toString(10);
+document.getElementById('out16').value = decimal.toString(16).toUpperCase();
+} catch(e) {
+err.textContent = '输入格式有误，请检查';
+}
+}
+&lt;/script&gt;</description></item></channel></rss>

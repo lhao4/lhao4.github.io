@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>代理 on HaoNest</title><link>https://lhao4.github.io/tags/%E4%BB%A3%E7%90%86/</link><description>Recent content in 代理 on HaoNest</description><generator>Hugo</generator><language>zh-cn</language><lastBuildDate>Sun, 01 Mar 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://lhao4.github.io/tags/%E4%BB%A3%E7%90%86/index.xml" rel="self" type="application/rss+xml"/><item><title>使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案</title><link>https://lhao4.github.io/posts/linux/ssh-codex-403/</link><pubDate>Sun, 01 Mar 2026 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/linux/ssh-codex-403/</guid><description>&lt;h1 id="一问题背景"&gt;一、问题背景&lt;/h1&gt;
+&lt;p&gt;你的目标是：&lt;/p&gt;
+&lt;p&gt;在 &lt;strong&gt;Windows + VSCode + Remote SSH + 远程 Linux 服务器&lt;/strong&gt; 环境中让远程服务器能够正常使用 &lt;strong&gt;Codex / OpenAI API&lt;/strong&gt;。&lt;/p&gt;
+&lt;p&gt;但遇到了两个问题：&lt;/p&gt;
+&lt;p&gt;1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 &lt;code&gt;localhost&lt;/code&gt; 失败（ERR_CONNECTION_REFUSED）&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/linux/ssh-codex-403/images/img1.png"&gt;&lt;/p&gt;
+&lt;p&gt;&lt;img loading="lazy" src="https://lhao4.github.io/posts/linux/ssh-codex-403/images/img2.png"&gt;&lt;/p&gt;
+&lt;p&gt;解决思路：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用 &lt;strong&gt;SSH 反向隧道&lt;/strong&gt;让远程服务器走本地代理&lt;/li&gt;
+&lt;li&gt;用 &lt;strong&gt;VSCode Port Forward&lt;/strong&gt;解决 OAuth 回调&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr&gt;
+&lt;h1 id="二本机开启代理"&gt;二、本机开启代理&lt;/h1&gt;
+&lt;p&gt;先确保你本机有可用代理。&lt;/p&gt;
+&lt;p&gt;你的代理端口是：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;127.0.0.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;验证代理是否可用：&lt;/p&gt;
+&lt;p&gt;PowerShell：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;$env:HTTP_PROXY=&amp;#34;http://127.0.0.1:9674&amp;#34;
+$env:HTTPS_PROXY=&amp;#34;http://127.0.0.1:9674&amp;#34;
+curl.exe -I https://api.openai.com
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;如果返回：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;HTTP/1.1 200 Connection established
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;说明代理正常。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="三建立-ssh-反向代理隧道"&gt;三、建立 SSH 反向代理隧道&lt;/h1&gt;
+&lt;p&gt;目的：&lt;/p&gt;
+&lt;p&gt;让远程服务器的流量通过 &lt;strong&gt;你的本地代理&lt;/strong&gt; 出网。&lt;/p&gt;
+&lt;p&gt;执行：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;含义：&lt;/p&gt;</description></item><item><title>WSL2 在开启 Windows 代理情况下安装 Codex CLI 的完整步骤</title><link>https://lhao4.github.io/posts/linux/wsl2-proxy-codex/</link><pubDate>Sun, 01 Feb 2026 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/linux/wsl2-proxy-codex/</guid><description>&lt;p&gt;本文档提供两种方法在 WSL2 中使用 Windows 代理，并完成 Codex CLI 安装与登录。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="方法一通过-windows-主机-ip-使用代理适用于默认-nat-网络"&gt;方法一：通过 Windows 主机 IP 使用代理（适用于默认 NAT 网络）&lt;/h1&gt;
+&lt;h2 id="步骤一确认-windows-代理端口"&gt;步骤一：确认 Windows 代理端口&lt;/h2&gt;
+&lt;p&gt;在 Windows PowerShell 或 CMD 执行&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;reg query &amp;#34;HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings&amp;#34; /v ProxyServer
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输出示例&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ProxyServer REG_SZ 127.0.0.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;说明 Windows 系统代理地址为&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;127.0.0.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="步骤二获取-windows-在-wsl-网络中的-ip"&gt;步骤二：获取 Windows 在 WSL 网络中的 IP&lt;/h2&gt;
+&lt;p&gt;进入 WSL 终端执行&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;grep nameserver /etc/resolv.conf
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输出示例&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;nameserver 172.20.128.1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;其中&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;172.20.128.1
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;为 Windows 主机在 WSL 网络中的地址。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h2 id="步骤三在-wsl-设置代理"&gt;步骤三：在 WSL 设置代理&lt;/h2&gt;
+&lt;p&gt;在 WSL 终端执行&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;export http_proxy=http://172.20.128.1:9674
+export https_proxy=http://172.20.128.1:9674
+export HTTP_PROXY=http://172.20.128.1:9674
+export HTTPS_PROXY=http://172.20.128.1:9674
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h2 id="步骤四测试代理"&gt;步骤四：测试代理&lt;/h2&gt;
+&lt;p&gt;执行&lt;/p&gt;</description></item></channel></rss>

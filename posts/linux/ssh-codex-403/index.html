@@ -1,0 +1,149 @@
+<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案 | HaoNest</title><meta name=keywords content="SSH,Codex,403,代理,踩坑"><meta name=description content='一、问题背景
+你的目标是：
+在 Windows + VSCode + Remote SSH + 远程 Linux 服务器 环境中让远程服务器能够正常使用 Codex / OpenAI API。
+但遇到了两个问题：
+1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 localhost 失败（ERR_CONNECTION_REFUSED）
+
+
+解决思路：
+
+用 SSH 反向隧道让远程服务器走本地代理
+用 VSCode Port Forward解决 OAuth 回调
+
+
+二、本机开启代理
+先确保你本机有可用代理。
+你的代理端口是：
+127.0.0.1:9674
+验证代理是否可用：
+PowerShell：
+$env:HTTP_PROXY="http://127.0.0.1:9674"
+$env:HTTPS_PROXY="http://127.0.0.1:9674"
+curl.exe -I https://api.openai.com
+如果返回：
+HTTP/1.1 200 Connection established
+说明代理正常。
+
+三、建立 SSH 反向代理隧道
+目的：
+让远程服务器的流量通过 你的本地代理 出网。
+执行：
+ssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31
+含义：'><meta name=author content="Hao"><link rel=canonical href=https://lhao4.github.io/posts/linux/ssh-codex-403/><link crossorigin=anonymous href=/assets/css/stylesheet.6514448b179bddf919ae48dc99fdf4213cd88e0a9bd140097abea9cffb5a211e.css integrity="sha256-ZRREixeb3fkZrkjcmf30ITzYjgqb0UAJer6pz/taIR4=" rel="preload stylesheet" as=style><link rel=icon href=https://lhao4.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://lhao4.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://lhao4.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://lhao4.github.io/apple-touch-icon.png><link rel=mask-icon href=https://lhao4.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://lhao4.github.io/posts/linux/ssh-codex-403/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><style>#read-progress{position:fixed;top:0;left:0;width:0%;height:3px;background:var(--primary);z-index:9999;transition:width .1s linear}#toc-sidebar{display:none;position:fixed;top:80px;right:max(20px,calc((100vw - 780px)/2 - 220px));width:200px;max-height:calc(100vh - 100px);overflow-y:auto;font-size:.82rem;line-height:1.5;z-index:100;padding:.8rem;border-left:2px solid var(--border)}#toc-sidebar::-webkit-scrollbar{width:3px}#toc-sidebar::-webkit-scrollbar-thumb{background:var(--border)}#toc-sidebar a{display:block;color:var(--secondary);text-decoration:none;padding:.15rem 0;border-radius:3px;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#toc-sidebar a:hover{color:var(--primary)}#toc-sidebar a.toc-active{color:var(--primary);font-weight:500}#toc-sidebar ul{list-style:none;padding:0;margin:0}#toc-sidebar li{padding:0}#toc-sidebar li li{padding-left:.8rem}#toc-sidebar li li li{padding-left:1.6rem}@media(min-width:1200px){#toc-sidebar{display:block}}</style><meta property="og:url" content="https://lhao4.github.io/posts/linux/ssh-codex-403/"><meta property="og:site_name" content="HaoNest"><meta property="og:title" content="使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案"><meta property="og:description" content='一、问题背景 你的目标是：
+在 Windows + VSCode + Remote SSH + 远程 Linux 服务器 环境中让远程服务器能够正常使用 Codex / OpenAI API。
+但遇到了两个问题：
+1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 localhost 失败（ERR_CONNECTION_REFUSED）
+解决思路：
+用 SSH 反向隧道让远程服务器走本地代理 用 VSCode Port Forward解决 OAuth 回调 二、本机开启代理 先确保你本机有可用代理。
+你的代理端口是：
+127.0.0.1:9674 验证代理是否可用：
+PowerShell：
+$env:HTTP_PROXY="http://127.0.0.1:9674" $env:HTTPS_PROXY="http://127.0.0.1:9674" curl.exe -I https://api.openai.com 如果返回：
+HTTP/1.1 200 Connection established 说明代理正常。
+三、建立 SSH 反向代理隧道 目的：
+让远程服务器的流量通过 你的本地代理 出网。
+执行：
+ssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31 含义：'><meta property="og:locale" content="zh_cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2026-03-01T00:00:00+00:00"><meta property="article:modified_time" content="2026-03-01T00:00:00+00:00"><meta property="article:tag" content="SSH"><meta property="article:tag" content="Codex"><meta property="article:tag" content="403"><meta property="article:tag" content="代理"><meta property="article:tag" content="踩坑"><meta name=twitter:card content="summary"><meta name=twitter:title content="使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案"><meta name=twitter:description content='一、问题背景 你的目标是：
+在 Windows + VSCode + Remote SSH + 远程 Linux 服务器 环境中让远程服务器能够正常使用 Codex / OpenAI API。
+但遇到了两个问题：
+1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 localhost 失败（ERR_CONNECTION_REFUSED）
+解决思路：
+用 SSH 反向隧道让远程服务器走本地代理 用 VSCode Port Forward解决 OAuth 回调 二、本机开启代理 先确保你本机有可用代理。
+你的代理端口是：
+127.0.0.1:9674 验证代理是否可用：
+PowerShell：
+$env:HTTP_PROXY="http://127.0.0.1:9674" $env:HTTPS_PROXY="http://127.0.0.1:9674" curl.exe -I https://api.openai.com 如果返回：
+HTTP/1.1 200 Connection established 说明代理正常。
+三、建立 SSH 反向代理隧道 目的：
+让远程服务器的流量通过 你的本地代理 出网。
+执行：
+ssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31 含义：'><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://lhao4.github.io/posts/"},{"@type":"ListItem","position":2,"name":"使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案","item":"https://lhao4.github.io/posts/linux/ssh-codex-403/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案","name":"使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案","description":"一、问题背景 你的目标是：\n在 Windows + VSCode + Remote SSH + 远程 Linux 服务器 环境中让远程服务器能够正常使用 Codex / OpenAI API。\n但遇到了两个问题：\n1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 localhost 失败（ERR_CONNECTION_REFUSED）\n解决思路：\n用 SSH 反向隧道让远程服务器走本地代理 用 VSCode Port Forward解决 OAuth 回调 二、本机开启代理 先确保你本机有可用代理。\n你的代理端口是：\n127.0.0.1:9674 验证代理是否可用：\nPowerShell：\n$env:HTTP_PROXY=\u0026#34;http://127.0.0.1:9674\u0026#34; $env:HTTPS_PROXY=\u0026#34;http://127.0.0.1:9674\u0026#34; curl.exe -I https://api.openai.com 如果返回：\nHTTP/1.1 200 Connection established 说明代理正常。\n三、建立 SSH 反向代理隧道 目的：\n让远程服务器的流量通过 你的本地代理 出网。\n执行：\nssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31 含义：\n","keywords":["SSH","Codex","403","代理","踩坑"],"articleBody":"一、问题背景 你的目标是：\n在 Windows + VSCode + Remote SSH + 远程 Linux 服务器 环境中让远程服务器能够正常使用 Codex / OpenAI API。\n但遇到了两个问题：\n1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 localhost 失败（ERR_CONNECTION_REFUSED）\n解决思路：\n用 SSH 反向隧道让远程服务器走本地代理 用 VSCode Port Forward解决 OAuth 回调 二、本机开启代理 先确保你本机有可用代理。\n你的代理端口是：\n127.0.0.1:9674 验证代理是否可用：\nPowerShell：\n$env:HTTP_PROXY=\"http://127.0.0.1:9674\" $env:HTTPS_PROXY=\"http://127.0.0.1:9674\" curl.exe -I https://api.openai.com 如果返回：\nHTTP/1.1 200 Connection established 说明代理正常。\n三、建立 SSH 反向代理隧道 目的：\n让远程服务器的流量通过 你的本地代理 出网。\n执行：\nssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31 含义：\n参数 作用 -R 18080:127.0.0.1:9674 远程18080 → 本地9674 -N 不执行命令 -T 不分配终端 建立后：\n远程服务器访问\n127.0.0.1:18080 就等于访问：\nWindows 127.0.0.1:9674 四、远程服务器测试代理 登录远程服务器：\nssh haoli@10.87.235.31 测试：\ncurl -I -x http://127.0.0.1:18080 https://api.openai.com 如果返回：\nHTTP/1.1 200 Connection established 说明代理成功。\n五、配置远程服务器代理环境变量 编辑：\nnano ~/.bashrc 添加：\nexport HTTP_PROXY=http://127.0.0.1:18080 export HTTPS_PROXY=http://127.0.0.1:18080 export ALL_PROXY=http://127.0.0.1:18080 刷新：\nsource ~/.bashrc 验证：\nenv | grep -i proxy 六、VSCode Remote SSH 连接服务器 在 VSCode：\nRemote-SSH → Connect to Host 连接：\nhaoli@10.87.235.31 七、Codex 登录问题（OAuth 回调失败） 登录时浏览器会打开：\nhttp://localhost:xxxx 但监听端口在远程服务器。\n所以浏览器访问失败：\nERR_CONNECTION_REFUSED 八、解决方法：VSCode 端口转发 打开 VSCode：\nPORTS 面板 你会看到：\n1455 localhost:1455 18080 127.0.0.1:18080 其中：\n端口 作用 1455 OAuth 回调 18080 代理隧道 VSCode 自动帮你完成：\nlocalhost:1455 → remote:1455 浏览器回调就能成功。\n九、最终网络结构 完整结构：\n浏览器 │ ▼ localhost:1455 │ ▼ VSCode Port Forward │ ▼ 远程服务器 1455 │ ▼ Codex OAuth 登录 API 网络：\n远程服务器 │ HTTP_PROXY=127.0.0.1:18080 │ ▼ SSH RemoteForward │ ▼ Windows 127.0.0.1:9674 │ ▼ 本地代理 │ ▼ OpenAI API 十、最终开发环境 你的开发架构现在是：\nWindows ├─ 代理工具 ├─ VSCode │ └─ Remote SSH │ ▼ 远程 Linux 服务器 │ ├─ Codex ├─ Node ├─ MySQL └─ 项目代码 所有远程流量：\nnpm / git / codex / openai │ ▼ SSH隧道 → 本地代理 十一、强烈建议（自动化配置） 为了以后不用手动运行 SSH 隧道，建议在：\n~/.ssh/config 添加：\nHost empire HostName 10.87.235.31 User haoli RemoteForward 18080 127.0.0.1:9674 ServerAliveInterval 60 以后：\nssh empire 自动建立代理隧道。\n十二、总结（关键点） 要让 远程服务器使用本地代理 + Codex 登录成功，必须完成三件事：\n① SSH 反向隧道 Remote 18080 → Local 9674 ② 远程代理变量 HTTP_PROXY=127.0.0.1:18080 ③ VSCode Port Forward localhost:1455 → remote:1455 只要这三步正确，Codex 就可以正常使用。\n","wordCount":"296","inLanguage":"en","datePublished":"2026-03-01T00:00:00Z","dateModified":"2026-03-01T00:00:00Z","author":{"@type":"Person","name":"Hao"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://lhao4.github.io/posts/linux/ssh-codex-403/"},"publisher":{"@type":"Organization","name":"HaoNest","logo":{"@type":"ImageObject","url":"https://lhao4.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://lhao4.github.io/ accesskey=h title="HaoNest (Alt + H)">HaoNest</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
+<svg id="moon" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu><li><a href=https://lhao4.github.io/posts/ title=博客><span>博客</span></a></li><li><a href=https://lhao4.github.io/nav/ title=导航><span>导航</span></a></li><li><a href=https://lhao4.github.io/tools/ title=工具><span>工具</span></a></li><li><a href=https://lhao4.github.io/ResumeFlow/ title=简历制作><span>简历制作</span>&nbsp;
+<svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a></li><li><a href=https://lhao4.github.io/categories/ title=分类><span>分类</span></a></li><li><a href=https://lhao4.github.io/tags/ title=标签><span>标签</span></a></li><li><a href=https://lhao4.github.io/favorites/ title=收藏><span>收藏</span></a></li><li><a href=https://lhao4.github.io/search/ title="搜索 (Alt + /)" accesskey=/><span>搜索</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href=https://lhao4.github.io/>Home</a>&nbsp;»&nbsp;<a href=https://lhao4.github.io/posts/>Posts</a></div><h1 class="post-title entry-hint-parent">使用 SSH 连接远程服务器时 Codex 出现 403 错误的解决方案</h1><div class=post-meta style=display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem><span><span title='2026-03-01 00:00:00 +0000 UTC'>March 1, 2026</span>&nbsp;·&nbsp;<span>2 min</span>&nbsp;·&nbsp;<span>296 words</span>&nbsp;·&nbsp;<span>Hao</span></span>
+<button id=fav-btn onclick=toggleFav() class=fav-toggle-btn title=收藏文章>
+<span id=fav-icon>☆</span>
+<span id=fav-text>收藏</span></button></div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><nav id=TableOfContents><ul><li><ul><li><a href=#-ssh-反向隧道>① SSH 反向隧道</a></li><li><a href=#-远程代理变量>② 远程代理变量</a></li><li><a href=#-vscode-port-forward>③ VSCode Port Forward</a></li></ul></li></ul></nav></div></details></div><div class=post-content><h1 id=一问题背景>一、问题背景<a hidden class=anchor aria-hidden=true href=#一问题背景>#</a></h1><p>你的目标是：</p><p>在 <strong>Windows + VSCode + Remote SSH + 远程 Linux 服务器</strong> 环境中让远程服务器能够正常使用 <strong>Codex / OpenAI API</strong>。</p><p>但遇到了两个问题：</p><p>1️⃣ 远程服务器访问 OpenAI 被限制（403 Country not supported）2️⃣ OAuth 登录回调 <code>localhost</code> 失败（ERR_CONNECTION_REFUSED）</p><p><img loading=lazy src=/posts/linux/ssh-codex-403/images/img1.png></p><p><img loading=lazy src=/posts/linux/ssh-codex-403/images/img2.png></p><p>解决思路：</p><ul><li>用 <strong>SSH 反向隧道</strong>让远程服务器走本地代理</li><li>用 <strong>VSCode Port Forward</strong>解决 OAuth 回调</li></ul><hr><h1 id=二本机开启代理>二、本机开启代理<a hidden class=anchor aria-hidden=true href=#二本机开启代理>#</a></h1><p>先确保你本机有可用代理。</p><p>你的代理端口是：</p><pre tabindex=0><code>127.0.0.1:9674
+</code></pre><p>验证代理是否可用：</p><p>PowerShell：</p><pre tabindex=0><code>$env:HTTP_PROXY=&#34;http://127.0.0.1:9674&#34;
+$env:HTTPS_PROXY=&#34;http://127.0.0.1:9674&#34;
+curl.exe -I https://api.openai.com
+</code></pre><p>如果返回：</p><pre tabindex=0><code>HTTP/1.1 200 Connection established
+</code></pre><p>说明代理正常。</p><hr><h1 id=三建立-ssh-反向代理隧道>三、建立 SSH 反向代理隧道<a hidden class=anchor aria-hidden=true href=#三建立-ssh-反向代理隧道>#</a></h1><p>目的：</p><p>让远程服务器的流量通过 <strong>你的本地代理</strong> 出网。</p><p>执行：</p><pre tabindex=0><code>ssh -N -T -R 18080:127.0.0.1:9674 haoli@10.87.235.31
+</code></pre><p>含义：</p><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>参数</td><td>作用</td></tr><tr><td><code>-R 18080:127.0.0.1:9674</code></td><td>远程18080 → 本地9674</td></tr><tr><td><code>-N</code></td><td>不执行命令</td></tr><tr><td><code>-T</code></td><td>不分配终端</td></tr></tbody></table><p>建立后：</p><p>远程服务器访问</p><pre tabindex=0><code>127.0.0.1:18080
+</code></pre><p>就等于访问：</p><pre tabindex=0><code>Windows 127.0.0.1:9674
+</code></pre><hr><h1 id=四远程服务器测试代理>四、远程服务器测试代理<a hidden class=anchor aria-hidden=true href=#四远程服务器测试代理>#</a></h1><p>登录远程服务器：</p><pre tabindex=0><code>ssh haoli@10.87.235.31
+</code></pre><p>测试：</p><pre tabindex=0><code>curl -I -x http://127.0.0.1:18080 https://api.openai.com
+</code></pre><p>如果返回：</p><pre tabindex=0><code>HTTP/1.1 200 Connection established
+</code></pre><p>说明代理成功。</p><hr><h1 id=五配置远程服务器代理环境变量>五、配置远程服务器代理环境变量<a hidden class=anchor aria-hidden=true href=#五配置远程服务器代理环境变量>#</a></h1><p>编辑：</p><pre tabindex=0><code>nano ~/.bashrc
+</code></pre><p>添加：</p><pre tabindex=0><code>export HTTP_PROXY=http://127.0.0.1:18080
+export HTTPS_PROXY=http://127.0.0.1:18080
+export ALL_PROXY=http://127.0.0.1:18080
+</code></pre><p>刷新：</p><pre tabindex=0><code>source ~/.bashrc
+</code></pre><p>验证：</p><pre tabindex=0><code>env | grep -i proxy
+</code></pre><hr><h1 id=六vscode-remote-ssh-连接服务器>六、VSCode Remote SSH 连接服务器<a hidden class=anchor aria-hidden=true href=#六vscode-remote-ssh-连接服务器>#</a></h1><p>在 VSCode：</p><pre tabindex=0><code>Remote-SSH → Connect to Host
+</code></pre><p>连接：</p><pre tabindex=0><code>haoli@10.87.235.31
+</code></pre><hr><h1 id=七codex-登录问题oauth-回调失败>七、Codex 登录问题（OAuth 回调失败）<a hidden class=anchor aria-hidden=true href=#七codex-登录问题oauth-回调失败>#</a></h1><p>登录时浏览器会打开：</p><pre tabindex=0><code>http://localhost:xxxx
+</code></pre><p>但监听端口在远程服务器。</p><p>所以浏览器访问失败：</p><pre tabindex=0><code>ERR_CONNECTION_REFUSED
+</code></pre><hr><h1 id=八解决方法vscode-端口转发>八、解决方法：VSCode 端口转发<a hidden class=anchor aria-hidden=true href=#八解决方法vscode-端口转发>#</a></h1><p>打开 VSCode：</p><pre tabindex=0><code>PORTS 面板
+</code></pre><p>你会看到：</p><p><img loading=lazy src=/posts/linux/ssh-codex-403/images/img3.png></p><pre tabindex=0><code>1455   localhost:1455
+18080  127.0.0.1:18080
+</code></pre><p>其中：</p><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>端口</td><td>作用</td></tr><tr><td>1455</td><td>OAuth 回调</td></tr><tr><td>18080</td><td>代理隧道</td></tr></tbody></table><p>VSCode 自动帮你完成：</p><pre tabindex=0><code>localhost:1455 → remote:1455
+</code></pre><p>浏览器回调就能成功。</p><hr><h1 id=九最终网络结构>九、最终网络结构<a hidden class=anchor aria-hidden=true href=#九最终网络结构>#</a></h1><p>完整结构：</p><pre tabindex=0><code>浏览器
+   │
+   ▼
+localhost:1455
+   │
+   ▼
+VSCode Port Forward
+   │
+   ▼
+远程服务器 1455
+   │
+   ▼
+Codex OAuth 登录
+</code></pre><p>API 网络：</p><pre tabindex=0><code>远程服务器
+   │
+HTTP_PROXY=127.0.0.1:18080
+   │
+   ▼
+SSH RemoteForward
+   │
+   ▼
+Windows 127.0.0.1:9674
+   │
+   ▼
+本地代理
+   │
+   ▼
+OpenAI API
+</code></pre><hr><h1 id=十最终开发环境>十、最终开发环境<a hidden class=anchor aria-hidden=true href=#十最终开发环境>#</a></h1><p>你的开发架构现在是：</p><pre tabindex=0><code>Windows
+ ├─ 代理工具
+ ├─ VSCode
+ │
+ └─ Remote SSH
+       │
+       ▼
+远程 Linux 服务器
+       │
+       ├─ Codex
+       ├─ Node
+       ├─ MySQL
+       └─ 项目代码
+</code></pre><p>所有远程流量：</p><pre tabindex=0><code>npm / git / codex / openai
+        │
+        ▼
+SSH隧道 → 本地代理
+</code></pre><hr><h1 id=十一强烈建议自动化配置>十一、强烈建议（自动化配置）<a hidden class=anchor aria-hidden=true href=#十一强烈建议自动化配置>#</a></h1><p>为了以后不用手动运行 SSH 隧道，建议在：</p><pre tabindex=0><code>~/.ssh/config
+</code></pre><p>添加：</p><pre tabindex=0><code>Host empire
+    HostName 10.87.235.31
+    User haoli
+    RemoteForward 18080 127.0.0.1:9674
+    ServerAliveInterval 60
+</code></pre><p>以后：</p><pre tabindex=0><code>ssh empire
+</code></pre><p>自动建立代理隧道。</p><hr><h1 id=十二总结关键点>十二、总结（关键点）<a hidden class=anchor aria-hidden=true href=#十二总结关键点>#</a></h1><p>要让 <strong>远程服务器使用本地代理 + Codex 登录成功</strong>，必须完成三件事：</p><h3 id=-ssh-反向隧道>① SSH 反向隧道<a hidden class=anchor aria-hidden=true href=#-ssh-反向隧道>#</a></h3><pre tabindex=0><code>Remote 18080 → Local 9674
+</code></pre><hr><h3 id=-远程代理变量>② 远程代理变量<a hidden class=anchor aria-hidden=true href=#-远程代理变量>#</a></h3><pre tabindex=0><code>HTTP_PROXY=127.0.0.1:18080
+</code></pre><hr><h3 id=-vscode-port-forward>③ VSCode Port Forward<a hidden class=anchor aria-hidden=true href=#-vscode-port-forward>#</a></h3><pre tabindex=0><code>localhost:1455 → remote:1455
+</code></pre><hr><p>只要这三步正确，<strong>Codex 就可以正常使用</strong>。</p></div><footer class=post-footer><ul class=post-tags><li><a href=https://lhao4.github.io/tags/ssh/>SSH</a></li><li><a href=https://lhao4.github.io/tags/codex/>Codex</a></li><li><a href=https://lhao4.github.io/tags/403/>403</a></li><li><a href=https://lhao4.github.io/tags/%E4%BB%A3%E7%90%86/>代理</a></li><li><a href=https://lhao4.github.io/tags/%E8%B8%A9%E5%9D%91/>踩坑</a></li></ul><nav class=paginav><a class=next href=https://lhao4.github.io/posts/linux/wsl2-proxy-codex/><span class=title>Next »</span><br><span>WSL2 在开启 Windows 代理情况下安装 Codex CLI 的完整步骤</span></a></nav></footer><div class=comments><script src=https://giscus.app/client.js data-repo=lhao4/lhao4.github.io data-repo-id=R_kgDORx_fcA data-category=Announcements data-category-id=DIC_kwDORx_fcM4C5X6F data-mapping=pathname data-strict=0 data-reactions-enabled=1 data-emit-metadata=0 data-input-position=bottom data-theme=preferred_color_scheme data-lang=zh-CN crossorigin=anonymous async></script></div></article><style>.fav-toggle-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .8rem;border:1px solid var(--border);border-radius:999px;background:0 0;color:inherit;font-size:.85rem;cursor:pointer;transition:all .2s}.fav-toggle-btn:hover{border-color:#e8a000;color:#e8a000}.fav-toggle-btn.is-faved{border-color:#e8a000;color:#e8a000;background:rgba(232,160,0,8%)}</style><script>(function(){const t="haonest-favs",e=window.location.pathname,r=document.title.replace(" | HaoNest",""),n=document.getElementById("fav-btn"),s=document.getElementById("fav-icon"),o=document.getElementById("fav-text");function i(){return JSON.parse(localStorage.getItem(t)||"[]")}function c(){return i().some(t=>t.url===e)}function a(){c()?(n.classList.add("is-faved"),s.textContent="★",o.textContent="已收藏"):(n.classList.remove("is-faved"),s.textContent="☆",o.textContent="收藏")}window.toggleFav=function(){const n=i(),s=n.findIndex(t=>t.url===e);s>=0?n.splice(s,1):n.unshift({title:r,url:e,date:(new Date).toLocaleDateString("zh-CN")}),localStorage.setItem(t,JSON.stringify(n)),a()},a()})()</script></main><footer class=footer><span>&copy; 2026 <a href=https://lhao4.github.io/>HaoNest</a></span> ·
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg></a><div id=read-progress></div><div id=toc-sidebar></div><script>(function(){const e=document.getElementById("read-progress");function t(){const n=window.scrollY,t=document.documentElement.scrollHeight-window.innerHeight;e.style.width=(t>0?n/t*100:0)+"%"}window.addEventListener("scroll",t,{passive:!0})})(),function(){const e=document.getElementById("toc-sidebar"),t=document.querySelector(".post-single #TableOfContents");if(!t||!e)return;e.innerHTML=t.innerHTML,t.parentElement.style.display="none";const n=[...e.querySelectorAll("a")],s=n.map(e=>{try{return document.getElementById(decodeURIComponent(e.hash.slice(1)))}catch{return null}}).filter(Boolean);function o(){let e=-1;const t=80;for(let n=0;n<s.length;n++)s[n].getBoundingClientRect().top<=t&&(e=n);n.forEach((t,n)=>t.classList.toggle("toc-active",n===e))}window.addEventListener("scroll",o,{passive:!0}),o()}()</script><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){document.body.scrollTop>800||document.documentElement.scrollTop>800?(mybutton.style.visibility="visible",mybutton.style.opacity="1"):(mybutton.style.visibility="hidden",mybutton.style.opacity="0")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="copy";function s(){t.innerHTML="copied!",setTimeout(()=>{t.innerHTML="copy"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>

@@ -1,0 +1,251 @@
+<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>CPU 架构分类详解 | HaoNest</title><meta name=keywords content="CPU,架构,ARM64,x86"><meta name=description content="CPU 架构的两大分类维度
+维度一：指令集架构 (ISA, Instruction Set Architecture)
+这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。
+
+  
+      
+          
+          
+          
+          
+      
+  
+  
+      
+          架构家族
+          代表厂商/产品
+          特点
+          典型应用场景
+      
+      
+          x86
+          Intel, AMD
+          CISC 复杂指令集，向后兼容极强
+          PC、服务器、游戏主机
+      
+      
+          x86-64 / AMD64
+          Intel, AMD
+          x86 的 64 位扩展，目前桌面/服务器主流
+          几乎所有现代 PC 和数据中心
+      
+      
+          ARM
+          ARM 公司授权
+          RISC 精简指令集，高能效比
+          手机、平板、嵌入式、现在进军 PC/服务器
+      
+      
+          ARM64 / AArch64
+          Apple M系列、高通、联发科
+          ARM 的 64 位版本，你看到的转储就是这个
+          iPhone、Android、Mac M1/M2/M3、云服务器
+      
+      
+          RISC-V
+          开源社区
+          开源、模块化、免授权费
+          物联网、AI 芯片、教育领域
+      
+      
+          MIPS
+          已衰落
+          经典 RISC，曾用于路由器/游戏机
+          逐步被 RISC-V 取代
+      
+      
+          PowerPC
+          IBM
+          高性能、高可靠性
+          曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器
+      
+      
+          SPARC
+          Oracle/Sun
+          开放标准，曾用于企业级服务器
+          已基本退出市场
+      
+  
+
+
+维度二：微架构 (Microarchitecture)
+微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。"><meta name=author content="Hao"><link rel=canonical href=https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/><link crossorigin=anonymous href=/assets/css/stylesheet.6514448b179bddf919ae48dc99fdf4213cd88e0a9bd140097abea9cffb5a211e.css integrity="sha256-ZRREixeb3fkZrkjcmf30ITzYjgqb0UAJer6pz/taIR4=" rel="preload stylesheet" as=style><link rel=icon href=https://lhao4.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://lhao4.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://lhao4.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://lhao4.github.io/apple-touch-icon.png><link rel=mask-icon href=https://lhao4.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><style>#read-progress{position:fixed;top:0;left:0;width:0%;height:3px;background:var(--primary);z-index:9999;transition:width .1s linear}#toc-sidebar{display:none;position:fixed;top:80px;right:max(20px,calc((100vw - 780px)/2 - 220px));width:200px;max-height:calc(100vh - 100px);overflow-y:auto;font-size:.82rem;line-height:1.5;z-index:100;padding:.8rem;border-left:2px solid var(--border)}#toc-sidebar::-webkit-scrollbar{width:3px}#toc-sidebar::-webkit-scrollbar-thumb{background:var(--border)}#toc-sidebar a{display:block;color:var(--secondary);text-decoration:none;padding:.15rem 0;border-radius:3px;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#toc-sidebar a:hover{color:var(--primary)}#toc-sidebar a.toc-active{color:var(--primary);font-weight:500}#toc-sidebar ul{list-style:none;padding:0;margin:0}#toc-sidebar li{padding:0}#toc-sidebar li li{padding-left:.8rem}#toc-sidebar li li li{padding-left:1.6rem}@media(min-width:1200px){#toc-sidebar{display:block}}</style><meta property="og:url" content="https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/"><meta property="og:site_name" content="HaoNest"><meta property="og:title" content="CPU 架构分类详解"><meta property="og:description" content="CPU 架构的两大分类维度 维度一：指令集架构 (ISA, Instruction Set Architecture) 这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。
+架构家族 代表厂商/产品 特点 典型应用场景 x86 Intel, AMD CISC 复杂指令集，向后兼容极强 PC、服务器、游戏主机 x86-64 / AMD64 Intel, AMD x86 的 64 位扩展，目前桌面/服务器主流 几乎所有现代 PC 和数据中心 ARM ARM 公司授权 RISC 精简指令集，高能效比 手机、平板、嵌入式、现在进军 PC/服务器 ARM64 / AArch64 Apple M系列、高通、联发科 ARM 的 64 位版本，你看到的转储就是这个 iPhone、Android、Mac M1/M2/M3、云服务器 RISC-V 开源社区 开源、模块化、免授权费 物联网、AI 芯片、教育领域 MIPS 已衰落 经典 RISC，曾用于路由器/游戏机 逐步被 RISC-V 取代 PowerPC IBM 高性能、高可靠性 曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器 SPARC Oracle/Sun 开放标准，曾用于企业级服务器 已基本退出市场 维度二：微架构 (Microarchitecture) 微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。"><meta property="og:locale" content="zh_cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2025-12-23T00:00:00+00:00"><meta property="article:modified_time" content="2025-12-23T00:00:00+00:00"><meta property="article:tag" content="CPU"><meta property="article:tag" content="架构"><meta property="article:tag" content="ARM64"><meta property="article:tag" content="X86"><meta name=twitter:card content="summary"><meta name=twitter:title content="CPU 架构分类详解"><meta name=twitter:description content="CPU 架构的两大分类维度 维度一：指令集架构 (ISA, Instruction Set Architecture) 这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。
+架构家族 代表厂商/产品 特点 典型应用场景 x86 Intel, AMD CISC 复杂指令集，向后兼容极强 PC、服务器、游戏主机 x86-64 / AMD64 Intel, AMD x86 的 64 位扩展，目前桌面/服务器主流 几乎所有现代 PC 和数据中心 ARM ARM 公司授权 RISC 精简指令集，高能效比 手机、平板、嵌入式、现在进军 PC/服务器 ARM64 / AArch64 Apple M系列、高通、联发科 ARM 的 64 位版本，你看到的转储就是这个 iPhone、Android、Mac M1/M2/M3、云服务器 RISC-V 开源社区 开源、模块化、免授权费 物联网、AI 芯片、教育领域 MIPS 已衰落 经典 RISC，曾用于路由器/游戏机 逐步被 RISC-V 取代 PowerPC IBM 高性能、高可靠性 曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器 SPARC Oracle/Sun 开放标准，曾用于企业级服务器 已基本退出市场 维度二：微架构 (Microarchitecture) 微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://lhao4.github.io/posts/"},{"@type":"ListItem","position":2,"name":"CPU 架构分类详解","item":"https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"CPU 架构分类详解","name":"CPU 架构分类详解","description":"CPU 架构的两大分类维度 维度一：指令集架构 (ISA, Instruction Set Architecture) 这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。\n架构家族 代表厂商/产品 特点 典型应用场景 x86 Intel, AMD CISC 复杂指令集，向后兼容极强 PC、服务器、游戏主机 x86-64 / AMD64 Intel, AMD x86 的 64 位扩展，目前桌面/服务器主流 几乎所有现代 PC 和数据中心 ARM ARM 公司授权 RISC 精简指令集，高能效比 手机、平板、嵌入式、现在进军 PC/服务器 ARM64 / AArch64 Apple M系列、高通、联发科 ARM 的 64 位版本，你看到的转储就是这个 iPhone、Android、Mac M1/M2/M3、云服务器 RISC-V 开源社区 开源、模块化、免授权费 物联网、AI 芯片、教育领域 MIPS 已衰落 经典 RISC，曾用于路由器/游戏机 逐步被 RISC-V 取代 PowerPC IBM 高性能、高可靠性 曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器 SPARC Oracle/Sun 开放标准，曾用于企业级服务器 已基本退出市场 维度二：微架构 (Microarchitecture) 微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。\n","keywords":["CPU","架构","ARM64","x86"],"articleBody":"CPU 架构的两大分类维度 维度一：指令集架构 (ISA, Instruction Set Architecture) 这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。\n架构家族 代表厂商/产品 特点 典型应用场景 x86 Intel, AMD CISC 复杂指令集，向后兼容极强 PC、服务器、游戏主机 x86-64 / AMD64 Intel, AMD x86 的 64 位扩展，目前桌面/服务器主流 几乎所有现代 PC 和数据中心 ARM ARM 公司授权 RISC 精简指令集，高能效比 手机、平板、嵌入式、现在进军 PC/服务器 ARM64 / AArch64 Apple M系列、高通、联发科 ARM 的 64 位版本，你看到的转储就是这个 iPhone、Android、Mac M1/M2/M3、云服务器 RISC-V 开源社区 开源、模块化、免授权费 物联网、AI 芯片、教育领域 MIPS 已衰落 经典 RISC，曾用于路由器/游戏机 逐步被 RISC-V 取代 PowerPC IBM 高性能、高可靠性 曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器 SPARC Oracle/Sun 开放标准，曾用于企业级服务器 已基本退出市场 维度二：微架构 (Microarchitecture) 微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。\n概念 说明 例子 CISC vs RISC 复杂指令集 vs 精简指令集 x86 是 CISC，ARM/RISC-V 是 RISC 流水线深度 指令执行的步骤拆分 Intel Core 系列 14-20 级流水线 乱序执行 (OoO) 不按程序顺序执行指令提升性能 Intel、Apple M 系列、高端 ARM 顺序执行 (In-Order) 按程序顺序执行，简单省电 早期 ARM Cortex-A7、物联网芯片 超标量 每周期执行多条指令 现代 CPU 普遍 3-6 发射 多核/众核 单个芯片集成多个处理核心 手机 8 核、服务器 64-128 核 主流架构详解 1. x86/x86-64 家族（CISC 代表） 历史线：8086 → 80286 → 80386 → Pentium → Core → 至今 ↓ AMD64 扩展（64位）→ Intel 被迫跟进叫 Intel 64 / EM64T 特点：\n指令长度可变（1-15 字节），解码复杂 寄存器少（早期 8 个，64 位扩展到 16 个通用 + 16 个 SIMD） 极强的向后兼容性（1981 年的程序今天还能跑） 微架构内部将 CISC 指令翻译成类 RISC 的微操作 (μops) 微架构演进：\n时代 代表 特点 Pentium 4 NetBurst 超长流水线，高频低效能 Core 系列 Sandy Bridge → 至今 能效平衡，乱序执行强化 近期 Alder Lake, Zen 4 大小核混合架构 2. ARM 家族（RISC 代表，重点） 这是你最需要关注的，因为你看到的转储就是 ARM64。\nARM 历史发展 ARMv1-v5 (1985-2000)：32位，嵌入式为主 ↓ ARMv6 (2007)：iPhone 初代使用 ↓ ARMv7 (2009-2011)：Cortex-A 系列，32位巅峰 ├── Cortex-A8/A9：早期智能手机 └── Cortex-A15：高端手机/平板 ↓ ARMv8 (2011-至今)：64位革命 ⭐ ├── AArch32：兼容 32 位（ARMv7 模式） └── AArch64：全新 64 位模式（你看到的） ↓ ARMv9 (2021-至今)：安全、AI 加速 └── 苹果 M3、高通骁龙 8 Gen 3 等 ARM 微架构层级 系列 定位 例子 Cortex-A 高性能应用处理器 手机、平板、PC（Cortex-X4, A720） Cortex-R 实时控制 汽车 ECU、硬盘控制器 Cortex-M 微控制器 物联网、传感器（M0/M3/M4/M7） Neoverse 云基础设施 AWS Graviton、阿里云倚天 Apple 自研 高性能低功耗 M1/M2/M3/M4 系列（基于 ARMv8/9 但高度定制） ARM64 (AArch64) 关键特征 特性 x86-64 ARM64 说明 寄存器数量 16 通用 31 通用 (X0-X30) 你看到的 X[0]-X[31] 寄存器宽度 64 位 64 位 都是 64 位架构 指令长度 变长 1-15 字节 定长 4 字节 解码更简单 调用约定 复杂 AAPCS64 标准 X0-X7 传参，X30 是 LR 内存访问 复杂寻址 Load/Store 架构 只有特定指令能访存 SIMD SSE/AVX NEON / SVE 你看到的 V[0]-V[31] 就是 NEON 寄存器 3. RISC-V（新兴开源架构） 2010年 伯克利大学诞生 ↓ 开源 ISA，任何人可免费实现 ↓ 模块化设计：基础指令集 + 可选扩展 ↓ 中国大力发展：阿里平头哥、中科院等 与 ARM 的关键区别：\nARM 是授权模式（买 IP 核），RISC-V 是开放标准 RISC-V 指令更简洁，无历史包袱 目前性能还追不上高端 ARM/x86，但物联网领域增长极快 4. 其他历史架构 架构 命运 教训 MIPS 被 RISC-V 取代 授权费模式不敌开源 PowerPC 小众化 封闭生态难以竞争 Itanium (IA-64) 彻底失败 与 x86 不兼容是硬伤 Alpha, PA-RISC 消亡 被 x86-64 统一市场 架构对比：以你看到的转储为例 你看到的 ARM64 寄存器：\nX[0] = 0xfffffffffffffffc ; 通用寄存器，64位 X[6] = 0x657551746e657645 ; 可存地址或数据，这里存了字符串 ... V[0] = 0x1405140514051405 ; SIMD 寄存器，128位宽（NEON） 如果在 x86-64 上，类似场景会显示：\nRAX = 0xfffffffffffffffc ; 累加器 RDI = 0x657551746e657645 ; 第1个参数寄存器（System V ABI） RSI = 0x6573614265756575 ; 第2个参数寄存器 ... XMM0 = 0x1405140514051405 ; SSE/AVX 寄存器，128/256/512位 关键差异：\nARM64 有 31 个通用寄存器，x86-64 只有 16 个 ARM64 函数参数用 X0-X7，x86-64 Linux 用 RDI, RSI, RDX, RCX, R8, R9 ARM64 返回地址存 X30 (LR)，x86-64 返回地址在 栈上 学习路径建议 针对你想看懂这类转储，建议按这个顺序：\n1. 先理解 RISC vs CISC 哲学差异（1天） └── 为什么 ARM 是 Load/Store 架构？ 2. 深入学习 ARM64 寄存器模型（1周） ├── X0-X30 通用寄存器 ├── V0-V31 SIMD/浮点寄存器（NEON/SVE） ├── 特殊寄存器：SP, PC, LR(X30), FP(X29) └── 系统寄存器（EL0/EL1/EL2/EL3 特权级） 3. 掌握 AAPCS64 调用约定（3天） └── 参数传递、栈帧布局、被调用者保存规则 4. 实践：用 GDB/lldb 调试 ARM64 程序（1-2周） └── 在 Android 设备或 Apple Silicon Mac 上实操 5. 进阶（可选） ├── 内存模型与屏障指令（DMB/DSB/ISB） ├── 异常处理与中断 └── 虚拟化扩展（如果你做云/安全） 推荐资源 类型 资源 说明 官方文档 ARM Architecture Reference Manual for ARMv8-A 最权威，但 6000+ 页 书籍 《Computer Organization and Design: ARM Edition》 经典教材，RISC-V 版也有 在线课程 Coursera “Computer Architecture” (Princeton) 理论扎实 实践工具 Godbolt Compiler Explorer + ARM64 GCC/Clang 看 C 代码转汇编 调试实践 Android Studio Debugger / lldb on macOS 真实环境练手 我来深入讲解 ARM64 (AArch64) 的 31 个通用寄存器，这是你理解那组寄存器转储的核心基础。\nARM 架构的 CPU 寄存器 一、寄存器概览 ARM64 vs ARM32 的关键区别 特性 ARM32 (ARMv7) ARM64 (ARMv8+) 通用寄存器 16 个 (R0-R15) 31 个 (X0-X30) 寄存器宽度 32 位 64 位 (X) / 32 位 (W) 程序计数器 R15 (PC) 独立寄存器，不可直接访问 链接寄存器 R14 (LR) X30 (LR) 栈指针 R13 (SP) 专用寄存器 SP 二、31 个通用寄存器详解 命名规则：X vs W X0 = 64 位完整寄存器 └── W0 = 低 32 位（写 W0 会自动清零高 32 位） 寄存器 64 位名 32 位名 典型用途 0 X0 W0 函数返回值 / 第 1 参数 1 X1 W1 第 2 参数 2 X2 W2 第 3 参数 3 X3 W3 第 4 参数 4 X4 W4 第 5 参数 5 X5 W5 第 6 参数 6 X6 W6 第 7 参数 / 临时寄存器 7 X7 W7 第 8 参数 / 临时寄存器 8 X8 W8 间接结果位置 / 临时 9 X9 W9 临时寄存器 10 X10 W10 临时寄存器 11 X11 W11 临时寄存器 12 X12 W12 临时寄存器 13 X13 W13 临时寄存器 14 X14 W14 临时寄存器 15 X15 W15 临时寄存器 16 X16 W16 临时寄存器 / 内核使用 (IP0) 17 X17 W17 临时寄存器 / 内核使用 (IP1) 18 X18 W18 平台保留寄存器 19 X19 W19 被调用者保存 20 X20 W20 被调用者保存 21 X21 W21 被调用者保存 22 X22 W22 被调用者保存 23 X23 W23 被调用者保存 24 X24 W24 被调用者保存 25 X25 W25 被调用者保存 26 X26 W26 被调用者保存 27 X27 W27 被调用者保存 28 X28 W28 被调用者保存 29 X29 W29 帧指针 (FP) 30 X30 W30 链接寄存器 (LR) 三、特殊寄存器详解 X29 - 帧指针 (Frame Pointer, FP) 用途：标记函数栈帧的起始位置 用于栈回溯（Stack Unwinding） 典型用法： STP X29, X30, [SP, #-16]! ; 保存 FP 和 LR 到栈 MOV X29, SP ; 更新 FP 指向当前栈帧 在你的转储中：\nX[29] = 0x7ec8c5da90 ; 帧指针，指向当前函数的栈帧 X30 - 链接寄存器 (Link Register, LR) 用途：保存函数返回地址 调用 BL/BLR 指令时，硬件自动将返回地址存入 X30 关键特性： - 叶子函数（不调用其他函数）可以不使用栈保存 LR - 非叶子函数必须将 LR 保存到栈，否则会被覆盖 在你的转储中：\nX[30] = 0xc978005b1855a2f8 ; 返回地址（但看起来被 PAC 签名过） 注意：这个值看起来是 PAC (Pointer Authentication Code) 签名后的地址，不是纯物理地址。\nSP - 栈指针 (Stack Pointer) 注意：SP 不是 X31！ X31 是零寄存器 (ZR) 或栈指针的别名（取决于上下文） 实际硬件： - 有多个 SP：SP_EL0, SP_EL1, SP_EL2, SP_EL3（每个异常级别一个） - 当前使用的 SP 由 PSTATE.SP 位决定 在你的转储中：\nV[2] = 0x380003ffd0 ; 可能是保存的 SP 值（栈指针） X31 - 零寄存器 (ZR) / SP 别名 读取 X31：总是返回 0（零寄存器 ZR） 写入 X31：数据被丢弃（类似 /dev/null） 例外： 某些指令中 X31 表示 SP（如 ADD X0, X31, #8 实际是 ADD X0, SP, #8） 四、寄存器分类与调用约定 (AAPCS64) 4.1 参数传递寄存器（易失性） 寄存器 用途 谁保存 X0-X7 函数参数 / 返回值 调用者保存（如果需要） X8 间接结果 / 临时 调用者保存 X9-X15 临时寄存器 调用者保存 X16-X17 (IP0-IP1) 临时 / 内核使用 调用者保存 特点：函数可以随意修改，调用者负责保存重要数据。\n4.2 被调用者保存寄存器（非易失性） 寄存器 用途 谁保存 X19-X28 临时寄存器 被调用者保存（如果修改必须恢复） X29 (FP) 帧指针 被调用者保存 X30 (LR) 链接寄存器 被调用者保存（如果调用其他函数） 特点：函数如果修改了这些寄存器，必须在返回前恢复原值。\n4.3 特殊寄存器 寄存器 用途 说明 X18 平台保留 iOS 用于指向 TLS，Android 避免使用 SP 栈指针 多个异常级别有独立的 SP PC 程序计数器 不能直接访问，只能通过分支指令修改 五、你的寄存器转储深度分析 X[0] = 0xfffffffffffffffc ; -4 (有符号)，可能是错误码或偏移 X[1] = 0x7ec8c5dac0 ; 指针，可能是参数 X[2] = 0x8 ; 小整数，可能是长度或标志 X[3] = 0x8 ; 同上 X[4] = 0x0 ; NULL 或 0 X[5] = 0x8 ; 同上 X[6] = 0x657551746e657645 ; \"EventQue\"（小端序） X[7] = 0x6573614265756575 ; \"ueueBase\"（小端序） X[8] = 0xfffff00000000001 ; 内核地址，可能是 current 指针 X[9] = 0x8 ; 小整数 X[10] = 0x7ec8c5dac0 ; 与 X1 相同，可能是 this 指针 X[11] = 0x79e253a776ab00fb ; 随机值，可能是 PAC 密钥或哈希 X[12] = 0x3b9ac9ff ; 1000000000 (十进制)，可能是纳秒转秒 X[13] = 0x2781f98a13 ; 指针 X[14] = 0x27ad814fdc ; 指针 X[15] = 0xa0a72fb9c6698360 ; 可能是随机数或密钥 X[16] = 0x5b18580818 ; 指针（代码段） X[17] = 0x5a94bef634 ; 指针（代码段） X[18] = 0x112 ; 小整数，可能是标志 X[19] = 0x5b2effd890 ; 被调用者保存寄存器，已保存 X[20] = 0x5b2effd820 ; 被调用者保存寄存器，已保存 X[21] = 0x72cc6e ; 小整数或指针 X[22] = 0x5b2effd820 ; 与 X20 相同 X[23] = 0x7ec8c5dc90 ; 指针 X[24] = 0x5b1857fa80 ; 指针 X[25] = 0x5b1857f950 ; 指针 X[26] = 0x0 ; NULL X[27] = 0x568af78354 ; 指针（代码段） X[28] = 0x5b2f008d48 ; 指针 X[29] = 0x7ec8c5da90 ; 帧指针 FP X[30] = 0xc978005b1855a2f8 ; 链接寄存器 LR（PAC 签名） 关键发现 1. 函数调用分析\nX0-X7 被大量使用 → 这是一个参数较多的函数调用 X6, X7 包含字符串 \"EventQueueBase\" → 类名或对象名 X10 = X1 → 可能是 this 指针（C++ 成员函数） 2. 栈帧结构\nX29 (FP) = 0x7ec8c5da90 X30 (LR) = 0xc978005b1855a2f8（PAC 签名） 典型栈帧布局： [高地址] X30 (LR) 保存值 X29 (FP) 保存值 ← X29 指向这里 局部变量 [低地址] SP 3. 代码位置推测\nX16, X17, X27 指向 0x5b... 区域 → 可能是代码段（.text） X1, X10, X23, X29 指向 0x7e... 区域 → 可能是堆或栈 六、实际应用场景 6.1 函数调用时寄存器变化 ; 调用者代码 MOV X0, #1 ; 第 1 参数 MOV X1, #2 ; 第 2 参数 BL my_function ; 调用函数，X30 = 返回地址 ; 被调用函数 my_function STP X29, X30, [SP, #-16]! ; 保存 FP 和 LR MOV X29, SP ; 建立新栈帧 ; ... 使用 X0-X18 做计算 ... ; ... 如果需要修改 X19-X28，必须先保存 ... LDP X29, X30, [SP], #16 ; 恢复 FP 和 LR RET ; 返回，使用 X30 6.2 系统调用时寄存器使用 ; Linux ARM64 系统调用 MOV X8, #93 ; 系统调用号 (exit) MOV X0, #0 ; 参数 (状态码) SVC #0 ; 触发系统调用 ; 系统调用约定： ; X0-X5: 参数 ; X8: 系统调用号 ; X0: 返回值 6.3 异常处理时寄存器保存 当异常发生时，硬件自动保存： - PSTATE → SPSR_ELx - PC → ELR_ELx - 如果使用 SP_EL0，会切换到 SP_ELx 软件需要保存： - X0-X30（如果需要） - 使用 SP 指向的栈空间 七、快速参考表 场景 关键寄存器 检查点 函数参数 X0-X7 值是什么类型？指针？整数？ 返回值 X0-X1 (128位) 函数返回了什么？ 栈回溯 X29 (FP), X30 (LR) 调用链是什么？ this 指针 X0 (非静态成员函数) 对象地址在哪里？ 线程本地存储 TPIDR_EL0 / X18 TLS 数据位置 内核崩溃 ELR_EL1, SPSR_EL1 崩溃时的 PC 和状态 八、学习建议 1. 先掌握调用约定（AAPCS64） └── 知道哪些寄存器可以随便用，哪些必须保存 2. 理解栈帧结构（FP/LR 链） └── 能够手动回溯函数调用栈 3. 学习异常级别（EL0-EL3） └── 理解不同特权级的寄存器差异 4. 实践：用 GDB 调试 ARM64 程序 └── info registers └── x/30i $pc └── bt（backtrace） ","wordCount":"1399","inLanguage":"en","datePublished":"2025-12-23T00:00:00Z","dateModified":"2025-12-23T00:00:00Z","author":{"@type":"Person","name":"Hao"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/"},"publisher":{"@type":"Organization","name":"HaoNest","logo":{"@type":"ImageObject","url":"https://lhao4.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://lhao4.github.io/ accesskey=h title="HaoNest (Alt + H)">HaoNest</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
+<svg id="moon" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu><li><a href=https://lhao4.github.io/posts/ title=博客><span>博客</span></a></li><li><a href=https://lhao4.github.io/nav/ title=导航><span>导航</span></a></li><li><a href=https://lhao4.github.io/tools/ title=工具><span>工具</span></a></li><li><a href=https://lhao4.github.io/ResumeFlow/ title=简历制作><span>简历制作</span>&nbsp;
+<svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a></li><li><a href=https://lhao4.github.io/categories/ title=分类><span>分类</span></a></li><li><a href=https://lhao4.github.io/tags/ title=标签><span>标签</span></a></li><li><a href=https://lhao4.github.io/favorites/ title=收藏><span>收藏</span></a></li><li><a href=https://lhao4.github.io/search/ title="搜索 (Alt + /)" accesskey=/><span>搜索</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href=https://lhao4.github.io/>Home</a>&nbsp;»&nbsp;<a href=https://lhao4.github.io/posts/>Posts</a></div><h1 class="post-title entry-hint-parent">CPU 架构分类详解</h1><div class=post-meta style=display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem><span><span title='2025-12-23 00:00:00 +0000 UTC'>December 23, 2025</span>&nbsp;·&nbsp;<span>7 min</span>&nbsp;·&nbsp;<span>1399 words</span>&nbsp;·&nbsp;<span>Hao</span></span>
+<button id=fav-btn onclick=toggleFav() class=fav-toggle-btn title=收藏文章>
+<span id=fav-icon>☆</span>
+<span id=fav-text>收藏</span></button></div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><nav id=TableOfContents><ul><li><a href=#cpu-架构的两大分类维度>CPU 架构的两大分类维度</a><ul><li><a href=#维度一指令集架构-isa-instruction-set-architecture>维度一：指令集架构 (ISA, Instruction Set Architecture)</a></li><li><a href=#维度二微架构-microarchitecture>维度二：微架构 (Microarchitecture)</a></li></ul></li><li><a href=#主流架构详解>主流架构详解</a><ul><li><a href=#1-x86x86-64-家族cisc-代表>1. x86/x86-64 家族（CISC 代表）</a></li><li><a href=#2-arm-家族risc-代表重点>2. ARM 家族（RISC 代表，<strong>重点</strong>）</a></li><li><a href=#3-risc-v新兴开源架构>3. RISC-V（新兴开源架构）</a></li><li><a href=#4-其他历史架构>4. 其他历史架构</a></li></ul></li><li><a href=#架构对比以你看到的转储为例>架构对比：以你看到的转储为例</a></li><li><a href=#学习路径建议>学习路径建议</a></li><li><a href=#推荐资源>推荐资源</a></li></ul><ul><li><a href=#一寄存器概览>一、寄存器概览</a><ul><li><a href=#arm64-vs-arm32-的关键区别>ARM64 vs ARM32 的关键区别</a></li></ul></li><li><a href=#二31-个通用寄存器详解>二、31 个通用寄存器详解</a><ul><li><a href=#命名规则x-vs-w>命名规则：X vs W</a></li></ul></li><li><a href=#三特殊寄存器详解>三、特殊寄存器详解</a><ul><li><a href=#x29---帧指针-frame-pointer-fp>X29 - 帧指针 (Frame Pointer, FP)</a></li><li><a href=#x30---链接寄存器-link-register-lr>X30 - 链接寄存器 (Link Register, LR)</a></li><li><a href=#sp---栈指针-stack-pointer>SP - 栈指针 (Stack Pointer)</a></li><li><a href=#x31---零寄存器-zr--sp-别名>X31 - 零寄存器 (ZR) / SP 别名</a></li></ul></li><li><a href=#四寄存器分类与调用约定-aapcs64>四、寄存器分类与调用约定 (AAPCS64)</a><ul><li><a href=#41-参数传递寄存器易失性>4.1 参数传递寄存器（易失性）</a></li><li><a href=#42-被调用者保存寄存器非易失性>4.2 被调用者保存寄存器（非易失性）</a></li><li><a href=#43-特殊寄存器>4.3 特殊寄存器</a></li></ul></li><li><a href=#五你的寄存器转储深度分析>五、你的寄存器转储深度分析</a><ul><li><a href=#关键发现>关键发现</a></li></ul></li><li><a href=#六实际应用场景>六、实际应用场景</a><ul><li><a href=#61-函数调用时寄存器变化>6.1 函数调用时寄存器变化</a></li><li><a href=#62-系统调用时寄存器使用>6.2 系统调用时寄存器使用</a></li><li><a href=#63-异常处理时寄存器保存>6.3 异常处理时寄存器保存</a></li></ul></li><li><a href=#七快速参考表>七、快速参考表</a></li><li><a href=#八学习建议>八、学习建议</a></li></ul></nav></div></details></div><div class=post-content><h2 id=cpu-架构的两大分类维度>CPU 架构的两大分类维度<a hidden class=anchor aria-hidden=true href=#cpu-架构的两大分类维度>#</a></h2><h3 id=维度一指令集架构-isa-instruction-set-architecture>维度一：指令集架构 (ISA, Instruction Set Architecture)<a hidden class=anchor aria-hidden=true href=#维度一指令集架构-isa-instruction-set-architecture>#</a></h3><p>这是 CPU 架构最核心的分类，决定了软件如何与硬件对话。</p><table><thead><tr><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>架构家族</td><td>代表厂商/产品</td><td>特点</td><td>典型应用场景</td></tr><tr><td><strong>x86</strong></td><td>Intel, AMD</td><td>CISC 复杂指令集，向后兼容极强</td><td>PC、服务器、游戏主机</td></tr><tr><td><strong>x86-64 / AMD64</strong></td><td>Intel, AMD</td><td>x86 的 64 位扩展，目前桌面/服务器主流</td><td>几乎所有现代 PC 和数据中心</td></tr><tr><td><strong>ARM</strong></td><td>ARM 公司授权</td><td>RISC 精简指令集，高能效比</td><td>手机、平板、嵌入式、现在进军 PC/服务器</td></tr><tr><td><strong>ARM64 / AArch64</strong></td><td>Apple M系列、高通、联发科</td><td>ARM 的 64 位版本，<strong>你看到的转储就是这个</strong></td><td>iPhone、Android、Mac M1/M2/M3、云服务器</td></tr><tr><td><strong>RISC-V</strong></td><td>开源社区</td><td>开源、模块化、免授权费</td><td>物联网、AI 芯片、教育领域</td></tr><tr><td><strong>MIPS</strong></td><td>已衰落</td><td>经典 RISC，曾用于路由器/游戏机</td><td>逐步被 RISC-V 取代</td></tr><tr><td><strong>PowerPC</strong></td><td>IBM</td><td>高性能、高可靠性</td><td>曾用于 Mac（2006年前）、Xbox 360/PS3、IBM 服务器</td></tr><tr><td><strong>SPARC</strong></td><td>Oracle/Sun</td><td>开放标准，曾用于企业级服务器</td><td>已基本退出市场</td></tr></tbody></table><hr><h3 id=维度二微架构-microarchitecture>维度二：微架构 (Microarchitecture)<a hidden class=anchor aria-hidden=true href=#维度二微架构-microarchitecture>#</a></h3><p>微架构是 ISA 的具体硬件实现，同一 ISA 可以有完全不同的微架构设计。</p><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>概念</td><td>说明</td><td>例子</td></tr><tr><td><strong>CISC vs RISC</strong></td><td>复杂指令集 vs 精简指令集</td><td>x86 是 CISC，ARM/RISC-V 是 RISC</td></tr><tr><td><strong>流水线深度</strong></td><td>指令执行的步骤拆分</td><td>Intel Core 系列 14-20 级流水线</td></tr><tr><td><strong>乱序执行 (OoO)</strong></td><td>不按程序顺序执行指令提升性能</td><td>Intel、Apple M 系列、高端 ARM</td></tr><tr><td><strong>顺序执行 (In-Order)</strong></td><td>按程序顺序执行，简单省电</td><td>早期 ARM Cortex-A7、物联网芯片</td></tr><tr><td><strong>超标量</strong></td><td>每周期执行多条指令</td><td>现代 CPU 普遍 3-6 发射</td></tr><tr><td><strong>多核/众核</strong></td><td>单个芯片集成多个处理核心</td><td>手机 8 核、服务器 64-128 核</td></tr></tbody></table><hr><h2 id=主流架构详解>主流架构详解<a hidden class=anchor aria-hidden=true href=#主流架构详解>#</a></h2><h3 id=1-x86x86-64-家族cisc-代表>1. x86/x86-64 家族（CISC 代表）<a hidden class=anchor aria-hidden=true href=#1-x86x86-64-家族cisc-代表>#</a></h3><pre tabindex=0><code>历史线：8086 → 80286 → 80386 → Pentium → Core → 至今
+         ↓
+      AMD64 扩展（64位）→ Intel 被迫跟进叫 Intel 64 / EM64T
+</code></pre><p><strong>特点：</strong></p><ul><li>指令长度可变（1-15 字节），解码复杂</li><li>寄存器少（早期 8 个，64 位扩展到 16 个通用 + 16 个 SIMD）</li><li>极强的向后兼容性（1981 年的程序今天还能跑）</li><li>微架构内部将 CISC 指令翻译成类 RISC 的微操作 (μops)</li></ul><p><strong>微架构演进：</strong></p><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>时代</td><td>代表</td><td>特点</td></tr><tr><td>Pentium 4</td><td>NetBurst</td><td>超长流水线，高频低效能</td></tr><tr><td>Core 系列</td><td>Sandy Bridge → 至今</td><td>能效平衡，乱序执行强化</td></tr><tr><td>近期</td><td>Alder Lake, Zen 4</td><td>大小核混合架构</td></tr></tbody></table><hr><h3 id=2-arm-家族risc-代表重点>2. ARM 家族（RISC 代表，<strong>重点</strong>）<a hidden class=anchor aria-hidden=true href=#2-arm-家族risc-代表重点>#</a></h3><p>这是你最需要关注的，因为你看到的转储就是 ARM64。</p><h4 id=arm-历史发展>ARM 历史发展<a hidden class=anchor aria-hidden=true href=#arm-历史发展>#</a></h4><pre tabindex=0><code>ARMv1-v5 (1985-2000)：32位，嵌入式为主
+    ↓
+ARMv6 (2007)：iPhone 初代使用
+    ↓
+ARMv7 (2009-2011)：Cortex-A 系列，32位巅峰
+    ├── Cortex-A8/A9：早期智能手机
+    └── Cortex-A15：高端手机/平板
+    ↓
+ARMv8 (2011-至今)：64位革命 ⭐
+    ├── AArch32：兼容 32 位（ARMv7 模式）
+    └── AArch64：全新 64 位模式（你看到的）
+    ↓
+ARMv9 (2021-至今)：安全、AI 加速
+    └── 苹果 M3、高通骁龙 8 Gen 3 等
+</code></pre><h4 id=arm-微架构层级>ARM 微架构层级<a hidden class=anchor aria-hidden=true href=#arm-微架构层级>#</a></h4><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>系列</td><td>定位</td><td>例子</td></tr><tr><td><strong>Cortex-A</strong></td><td>高性能应用处理器</td><td>手机、平板、PC（Cortex-X4, A720）</td></tr><tr><td><strong>Cortex-R</strong></td><td>实时控制</td><td>汽车 ECU、硬盘控制器</td></tr><tr><td><strong>Cortex-M</strong></td><td>微控制器</td><td>物联网、传感器（M0/M3/M4/M7）</td></tr><tr><td><strong>Neoverse</strong></td><td>云基础设施</td><td>AWS Graviton、阿里云倚天</td></tr><tr><td><strong>Apple 自研</strong></td><td>高性能低功耗</td><td>M1/M2/M3/M4 系列（基于 ARMv8/9 但高度定制）</td></tr></tbody></table><h4 id=arm64-aarch64-关键特征>ARM64 (AArch64) 关键特征<a hidden class=anchor aria-hidden=true href=#arm64-aarch64-关键特征>#</a></h4><table><thead><tr><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>特性</td><td>x86-64</td><td>ARM64</td><td>说明</td></tr><tr><td>寄存器数量</td><td>16 通用</td><td><strong>31 通用 (X0-X30)</strong></td><td>你看到的 X[0]-X[31]</td></tr><tr><td>寄存器宽度</td><td>64 位</td><td>64 位</td><td>都是 64 位架构</td></tr><tr><td>指令长度</td><td>变长 1-15 字节</td><td><strong>定长 4 字节</strong></td><td>解码更简单</td></tr><tr><td>调用约定</td><td>复杂</td><td><strong>AAPCS64 标准</strong></td><td>X0-X7 传参，X30 是 LR</td></tr><tr><td>内存访问</td><td>复杂寻址</td><td>Load/Store 架构</td><td>只有特定指令能访存</td></tr><tr><td>SIMD</td><td>SSE/AVX</td><td><strong>NEON / SVE</strong></td><td>你看到的 V[0]-V[31] 就是 NEON 寄存器</td></tr></tbody></table><hr><h3 id=3-risc-v新兴开源架构>3. RISC-V（新兴开源架构）<a hidden class=anchor aria-hidden=true href=#3-risc-v新兴开源架构>#</a></h3><pre tabindex=0><code>2010年 伯克利大学诞生
+    ↓
+开源 ISA，任何人可免费实现
+    ↓
+模块化设计：基础指令集 + 可选扩展
+    ↓
+中国大力发展：阿里平头哥、中科院等
+</code></pre><p><strong>与 ARM 的关键区别：</strong></p><ul><li>ARM 是授权模式（买 IP 核），RISC-V 是开放标准</li><li>RISC-V 指令更简洁，无历史包袱</li><li>目前性能还追不上高端 ARM/x86，但物联网领域增长极快</li></ul><hr><h3 id=4-其他历史架构>4. 其他历史架构<a hidden class=anchor aria-hidden=true href=#4-其他历史架构>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>架构</td><td>命运</td><td>教训</td></tr><tr><td>MIPS</td><td>被 RISC-V 取代</td><td>授权费模式不敌开源</td></tr><tr><td>PowerPC</td><td>小众化</td><td>封闭生态难以竞争</td></tr><tr><td>Itanium (IA-64)</td><td>彻底失败</td><td>与 x86 不兼容是硬伤</td></tr><tr><td>Alpha, PA-RISC</td><td>消亡</td><td>被 x86-64 统一市场</td></tr></tbody></table><hr><h2 id=架构对比以你看到的转储为例>架构对比：以你看到的转储为例<a hidden class=anchor aria-hidden=true href=#架构对比以你看到的转储为例>#</a></h2><p>你看到的 ARM64 寄存器：</p><pre tabindex=0><code>X[0] = 0xfffffffffffffffc    ; 通用寄存器，64位
+X[6] = 0x657551746e657645    ; 可存地址或数据，这里存了字符串
+...
+V[0] = 0x1405140514051405    ; SIMD 寄存器，128位宽（NEON）
+</code></pre><p><strong>如果在 x86-64 上，类似场景会显示：</strong></p><pre tabindex=0><code>RAX = 0xfffffffffffffffc     ; 累加器
+RDI = 0x657551746e657645     ; 第1个参数寄存器（System V ABI）
+RSI = 0x6573614265756575     ; 第2个参数寄存器
+...
+XMM0 = 0x1405140514051405    ; SSE/AVX 寄存器，128/256/512位
+</code></pre><p><strong>关键差异：</strong></p><ul><li>ARM64 有 <strong>31 个通用寄存器</strong>，x86-64 只有 <strong>16 个</strong></li><li>ARM64 函数参数用 <strong>X0-X7</strong>，x86-64 Linux 用 <strong>RDI, RSI, RDX, RCX, R8, R9</strong></li><li>ARM64 返回地址存 <strong>X30 (LR)</strong>，x86-64 返回地址在 <strong>栈上</strong></li></ul><hr><h2 id=学习路径建议>学习路径建议<a hidden class=anchor aria-hidden=true href=#学习路径建议>#</a></h2><p>针对你想看懂这类转储，建议按这个顺序：</p><pre tabindex=0><code>1. 先理解 RISC vs CISC 哲学差异（1天）
+   └── 为什么 ARM 是 Load/Store 架构？
+
+2. 深入学习 ARM64 寄存器模型（1周）
+   ├── X0-X30 通用寄存器
+   ├── V0-V31 SIMD/浮点寄存器（NEON/SVE）
+   ├── 特殊寄存器：SP, PC, LR(X30), FP(X29)
+   └── 系统寄存器（EL0/EL1/EL2/EL3 特权级）
+
+3. 掌握 AAPCS64 调用约定（3天）
+   └── 参数传递、栈帧布局、被调用者保存规则
+
+4. 实践：用 GDB/lldb 调试 ARM64 程序（1-2周）
+   └── 在 Android 设备或 Apple Silicon Mac 上实操
+
+5. 进阶（可选）
+   ├── 内存模型与屏障指令（DMB/DSB/ISB）
+   ├── 异常处理与中断
+   └── 虚拟化扩展（如果你做云/安全）
+</code></pre><hr><h2 id=推荐资源>推荐资源<a hidden class=anchor aria-hidden=true href=#推荐资源>#</a></h2><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>类型</td><td>资源</td><td>说明</td></tr><tr><td><strong>官方文档</strong></td><td>ARM Architecture Reference Manual for ARMv8-A</td><td>最权威，但 6000+ 页</td></tr><tr><td><strong>书籍</strong></td><td>《Computer Organization and Design: ARM Edition》</td><td>经典教材，RISC-V 版也有</td></tr><tr><td><strong>在线课程</strong></td><td>Coursera &ldquo;Computer Architecture&rdquo; (Princeton)</td><td>理论扎实</td></tr><tr><td><strong>实践工具</strong></td><td>Godbolt Compiler Explorer + ARM64 GCC/Clang</td><td>看 C 代码转汇编</td></tr><tr><td><strong>调试实践</strong></td><td>Android Studio Debugger / lldb on macOS</td><td>真实环境练手</td></tr></tbody></table><hr><p>我来深入讲解 ARM64 (AArch64) 的 31 个通用寄存器，这是你理解那组寄存器转储的核心基础。</p><hr><h1 id=arm-架构的-cpu-寄存器>ARM 架构的 CPU 寄存器<a hidden class=anchor aria-hidden=true href=#arm-架构的-cpu-寄存器>#</a></h1><h2 id=一寄存器概览>一、寄存器概览<a hidden class=anchor aria-hidden=true href=#一寄存器概览>#</a></h2><h3 id=arm64-vs-arm32-的关键区别>ARM64 vs ARM32 的关键区别<a hidden class=anchor aria-hidden=true href=#arm64-vs-arm32-的关键区别>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>特性</td><td>ARM32 (ARMv7)</td><td>ARM64 (ARMv8+)</td></tr><tr><td>通用寄存器</td><td>16 个 (R0-R15)</td><td><strong>31 个 (X0-X30)</strong></td></tr><tr><td>寄存器宽度</td><td>32 位</td><td><strong>64 位 (X)</strong> / 32 位 (W)</td></tr><tr><td>程序计数器</td><td>R15 (PC)</td><td><strong>独立寄存器，不可直接访问</strong></td></tr><tr><td>链接寄存器</td><td>R14 (LR)</td><td><strong>X30 (LR)</strong></td></tr><tr><td>栈指针</td><td>R13 (SP)</td><td><strong>专用寄存器 SP</strong></td></tr></tbody></table><hr><h2 id=二31-个通用寄存器详解>二、31 个通用寄存器详解<a hidden class=anchor aria-hidden=true href=#二31-个通用寄存器详解>#</a></h2><h3 id=命名规则x-vs-w>命名规则：X vs W<a hidden class=anchor aria-hidden=true href=#命名规则x-vs-w>#</a></h3><pre tabindex=0><code>X0 = 64 位完整寄存器
+  └── W0 = 低 32 位（写 W0 会自动清零高 32 位）
+</code></pre><table><thead><tr><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>寄存器</td><td>64 位名</td><td>32 位名</td><td>典型用途</td></tr><tr><td>0</td><td>X0</td><td>W0</td><td>函数返回值 / 第 1 参数</td></tr><tr><td>1</td><td>X1</td><td>W1</td><td>第 2 参数</td></tr><tr><td>2</td><td>X2</td><td>W2</td><td>第 3 参数</td></tr><tr><td>3</td><td>X3</td><td>W3</td><td>第 4 参数</td></tr><tr><td>4</td><td>X4</td><td>W4</td><td>第 5 参数</td></tr><tr><td>5</td><td>X5</td><td>W5</td><td>第 6 参数</td></tr><tr><td>6</td><td>X6</td><td>W6</td><td>第 7 参数 / 临时寄存器</td></tr><tr><td>7</td><td>X7</td><td>W7</td><td>第 8 参数 / 临时寄存器</td></tr><tr><td>8</td><td>X8</td><td>W8</td><td>间接结果位置 / 临时</td></tr><tr><td>9</td><td>X9</td><td>W9</td><td>临时寄存器</td></tr><tr><td>10</td><td>X10</td><td>W10</td><td>临时寄存器</td></tr><tr><td>11</td><td>X11</td><td>W11</td><td>临时寄存器</td></tr><tr><td>12</td><td>X12</td><td>W12</td><td>临时寄存器</td></tr><tr><td>13</td><td>X13</td><td>W13</td><td>临时寄存器</td></tr><tr><td>14</td><td>X14</td><td>W14</td><td>临时寄存器</td></tr><tr><td>15</td><td>X15</td><td>W15</td><td>临时寄存器</td></tr><tr><td>16</td><td>X16</td><td>W16</td><td>临时寄存器 / 内核使用 (IP0)</td></tr><tr><td>17</td><td>X17</td><td>W17</td><td>临时寄存器 / 内核使用 (IP1)</td></tr><tr><td>18</td><td>X18</td><td>W18</td><td><strong>平台保留寄存器</strong></td></tr><tr><td>19</td><td>X19</td><td>W19</td><td><strong>被调用者保存</strong></td></tr><tr><td>20</td><td>X20</td><td>W20</td><td><strong>被调用者保存</strong></td></tr><tr><td>21</td><td>X21</td><td>W21</td><td><strong>被调用者保存</strong></td></tr><tr><td>22</td><td>X22</td><td>W22</td><td><strong>被调用者保存</strong></td></tr><tr><td>23</td><td>X23</td><td>W23</td><td><strong>被调用者保存</strong></td></tr><tr><td>24</td><td>X24</td><td>W24</td><td><strong>被调用者保存</strong></td></tr><tr><td>25</td><td>X25</td><td>W25</td><td><strong>被调用者保存</strong></td></tr><tr><td>26</td><td>X26</td><td>W26</td><td><strong>被调用者保存</strong></td></tr><tr><td>27</td><td>X27</td><td>W27</td><td><strong>被调用者保存</strong></td></tr><tr><td>28</td><td>X28</td><td>W28</td><td><strong>被调用者保存</strong></td></tr><tr><td>29</td><td>X29</td><td>W29</td><td><strong>帧指针 (FP)</strong></td></tr><tr><td>30</td><td>X30</td><td>W30</td><td><strong>链接寄存器 (LR)</strong></td></tr></tbody></table><hr><h2 id=三特殊寄存器详解>三、特殊寄存器详解<a hidden class=anchor aria-hidden=true href=#三特殊寄存器详解>#</a></h2><h3 id=x29---帧指针-frame-pointer-fp>X29 - 帧指针 (Frame Pointer, FP)<a hidden class=anchor aria-hidden=true href=#x29---帧指针-frame-pointer-fp>#</a></h3><pre tabindex=0><code>用途：标记函数栈帧的起始位置
+      用于栈回溯（Stack Unwinding）
+
+典型用法：
+    STP X29, X30, [SP, #-16]!   ; 保存 FP 和 LR 到栈
+    MOV X29, SP                  ; 更新 FP 指向当前栈帧
+</code></pre><p><strong>在你的转储中：</strong></p><pre tabindex=0><code>X[29] = 0x7ec8c5da90    ; 帧指针，指向当前函数的栈帧
+</code></pre><h3 id=x30---链接寄存器-link-register-lr>X30 - 链接寄存器 (Link Register, LR)<a hidden class=anchor aria-hidden=true href=#x30---链接寄存器-link-register-lr>#</a></h3><pre tabindex=0><code>用途：保存函数返回地址
+      调用 BL/BLR 指令时，硬件自动将返回地址存入 X30
+
+关键特性：
+    - 叶子函数（不调用其他函数）可以不使用栈保存 LR
+    - 非叶子函数必须将 LR 保存到栈，否则会被覆盖
+</code></pre><p><strong>在你的转储中：</strong></p><pre tabindex=0><code>X[30] = 0xc978005b1855a2f8    ; 返回地址（但看起来被 PAC 签名过）
+</code></pre><p><strong>注意</strong>：这个值看起来是 <strong>PAC (Pointer Authentication Code)</strong> 签名后的地址，不是纯物理地址。</p><h3 id=sp---栈指针-stack-pointer>SP - 栈指针 (Stack Pointer)<a hidden class=anchor aria-hidden=true href=#sp---栈指针-stack-pointer>#</a></h3><pre tabindex=0><code>注意：SP 不是 X31！
+      X31 是零寄存器 (ZR) 或栈指针的别名（取决于上下文）
+
+实际硬件：
+    - 有多个 SP：SP_EL0, SP_EL1, SP_EL2, SP_EL3（每个异常级别一个）
+    - 当前使用的 SP 由 PSTATE.SP 位决定
+</code></pre><p><strong>在你的转储中：</strong></p><pre tabindex=0><code>V[2] = 0x380003ffd0    ; 可能是保存的 SP 值（栈指针）
+</code></pre><h3 id=x31---零寄存器-zr--sp-别名>X31 - 零寄存器 (ZR) / SP 别名<a hidden class=anchor aria-hidden=true href=#x31---零寄存器-zr--sp-别名>#</a></h3><pre tabindex=0><code>读取 X31：总是返回 0（零寄存器 ZR）
+写入 X31：数据被丢弃（类似 /dev/null）
+
+例外：
+    某些指令中 X31 表示 SP（如 ADD X0, X31, #8 实际是 ADD X0, SP, #8）
+</code></pre><hr><h2 id=四寄存器分类与调用约定-aapcs64>四、寄存器分类与调用约定 (AAPCS64)<a hidden class=anchor aria-hidden=true href=#四寄存器分类与调用约定-aapcs64>#</a></h2><h3 id=41-参数传递寄存器易失性>4.1 参数传递寄存器（易失性）<a hidden class=anchor aria-hidden=true href=#41-参数传递寄存器易失性>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>寄存器</td><td>用途</td><td>谁保存</td></tr><tr><td>X0-X7</td><td>函数参数 / 返回值</td><td><strong>调用者</strong>保存（如果需要）</td></tr><tr><td>X8</td><td>间接结果 / 临时</td><td><strong>调用者</strong>保存</td></tr><tr><td>X9-X15</td><td>临时寄存器</td><td><strong>调用者</strong>保存</td></tr><tr><td>X16-X17 (IP0-IP1)</td><td>临时 / 内核使用</td><td><strong>调用者</strong>保存</td></tr></tbody></table><p><strong>特点</strong>：函数可以随意修改，调用者负责保存重要数据。</p><h3 id=42-被调用者保存寄存器非易失性>4.2 被调用者保存寄存器（非易失性）<a hidden class=anchor aria-hidden=true href=#42-被调用者保存寄存器非易失性>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>寄存器</td><td>用途</td><td>谁保存</td></tr><tr><td>X19-X28</td><td>临时寄存器</td><td><strong>被调用者</strong>保存（如果修改必须恢复）</td></tr><tr><td>X29 (FP)</td><td>帧指针</td><td><strong>被调用者</strong>保存</td></tr><tr><td>X30 (LR)</td><td>链接寄存器</td><td><strong>被调用者</strong>保存（如果调用其他函数）</td></tr></tbody></table><p><strong>特点</strong>：函数如果修改了这些寄存器，必须在返回前恢复原值。</p><h3 id=43-特殊寄存器>4.3 特殊寄存器<a hidden class=anchor aria-hidden=true href=#43-特殊寄存器>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>寄存器</td><td>用途</td><td>说明</td></tr><tr><td>X18</td><td>平台保留</td><td>iOS 用于指向 TLS，Android 避免使用</td></tr><tr><td>SP</td><td>栈指针</td><td>多个异常级别有独立的 SP</td></tr><tr><td>PC</td><td>程序计数器</td><td><strong>不能直接访问</strong>，只能通过分支指令修改</td></tr></tbody></table><hr><h2 id=五你的寄存器转储深度分析>五、你的寄存器转储深度分析<a hidden class=anchor aria-hidden=true href=#五你的寄存器转储深度分析>#</a></h2><pre tabindex=0><code>X[0]  = 0xfffffffffffffffc    ; -4 (有符号)，可能是错误码或偏移
+X[1]  = 0x7ec8c5dac0          ; 指针，可能是参数
+X[2]  = 0x8                   ; 小整数，可能是长度或标志
+X[3]  = 0x8                   ; 同上
+X[4]  = 0x0                   ; NULL 或 0
+X[5]  = 0x8                   ; 同上
+X[6]  = 0x657551746e657645    ; &#34;EventQue&#34;（小端序）
+X[7]  = 0x6573614265756575    ; &#34;ueueBase&#34;（小端序）
+X[8]  = 0xfffff00000000001    ; 内核地址，可能是 current 指针
+X[9]  = 0x8                   ; 小整数
+X[10] = 0x7ec8c5dac0          ; 与 X1 相同，可能是 this 指针
+X[11] = 0x79e253a776ab00fb    ; 随机值，可能是 PAC 密钥或哈希
+X[12] = 0x3b9ac9ff            ; 1000000000 (十进制)，可能是纳秒转秒
+X[13] = 0x2781f98a13          ; 指针
+X[14] = 0x27ad814fdc          ; 指针
+X[15] = 0xa0a72fb9c6698360    ; 可能是随机数或密钥
+X[16] = 0x5b18580818          ; 指针（代码段）
+X[17] = 0x5a94bef634          ; 指针（代码段）
+X[18] = 0x112                 ; 小整数，可能是标志
+X[19] = 0x5b2effd890          ; 被调用者保存寄存器，已保存
+X[20] = 0x5b2effd820          ; 被调用者保存寄存器，已保存
+X[21] = 0x72cc6e              ; 小整数或指针
+X[22] = 0x5b2effd820          ; 与 X20 相同
+X[23] = 0x7ec8c5dc90          ; 指针
+X[24] = 0x5b1857fa80          ; 指针
+X[25] = 0x5b1857f950          ; 指针
+X[26] = 0x0                   ; NULL
+X[27] = 0x568af78354          ; 指针（代码段）
+X[28] = 0x5b2f008d48          ; 指针
+X[29] = 0x7ec8c5da90          ; 帧指针 FP
+X[30] = 0xc978005b1855a2f8    ; 链接寄存器 LR（PAC 签名）
+</code></pre><h3 id=关键发现>关键发现<a hidden class=anchor aria-hidden=true href=#关键发现>#</a></h3><p><strong>1. 函数调用分析</strong></p><pre tabindex=0><code>X0-X7 被大量使用 → 这是一个参数较多的函数调用
+X6, X7 包含字符串 &#34;EventQueueBase&#34; → 类名或对象名
+X10 = X1 → 可能是 this 指针（C++ 成员函数）
+</code></pre><p><strong>2. 栈帧结构</strong></p><pre tabindex=0><code>X29 (FP) = 0x7ec8c5da90
+X30 (LR) = 0xc978005b1855a2f8（PAC 签名）
+
+典型栈帧布局：
+    [高地址]
+    X30 (LR) 保存值
+    X29 (FP) 保存值  ← X29 指向这里
+    局部变量
+    [低地址] SP
+</code></pre><p><strong>3. 代码位置推测</strong></p><pre tabindex=0><code>X16, X17, X27 指向 0x5b... 区域 → 可能是代码段（.text）
+X1, X10, X23, X29 指向 0x7e... 区域 → 可能是堆或栈
+</code></pre><hr><h2 id=六实际应用场景>六、实际应用场景<a hidden class=anchor aria-hidden=true href=#六实际应用场景>#</a></h2><h3 id=61-函数调用时寄存器变化>6.1 函数调用时寄存器变化<a hidden class=anchor aria-hidden=true href=#61-函数调用时寄存器变化>#</a></h3><pre tabindex=0><code>; 调用者代码
+MOV X0, #1          ; 第 1 参数
+MOV X1, #2          ; 第 2 参数
+BL  my_function     ; 调用函数，X30 = 返回地址
+
+; 被调用函数 my_function
+STP X29, X30, [SP, #-16]!  ; 保存 FP 和 LR
+MOV X29, SP                ; 建立新栈帧
+; ... 使用 X0-X18 做计算 ...
+; ... 如果需要修改 X19-X28，必须先保存 ...
+LDP X29, X30, [SP], #16    ; 恢复 FP 和 LR
+RET                        ; 返回，使用 X30
+</code></pre><h3 id=62-系统调用时寄存器使用>6.2 系统调用时寄存器使用<a hidden class=anchor aria-hidden=true href=#62-系统调用时寄存器使用>#</a></h3><pre tabindex=0><code>; Linux ARM64 系统调用
+MOV X8, #93         ; 系统调用号 (exit)
+MOV X0, #0          ; 参数 (状态码)
+SVC #0              ; 触发系统调用
+
+; 系统调用约定：
+; X0-X5: 参数
+; X8:    系统调用号
+; X0:    返回值
+</code></pre><h3 id=63-异常处理时寄存器保存>6.3 异常处理时寄存器保存<a hidden class=anchor aria-hidden=true href=#63-异常处理时寄存器保存>#</a></h3><pre tabindex=0><code>当异常发生时，硬件自动保存：
+    - PSTATE → SPSR_ELx
+    - PC     → ELR_ELx
+    - 如果使用 SP_EL0，会切换到 SP_ELx
+
+软件需要保存：
+    - X0-X30（如果需要）
+    - 使用 SP 指向的栈空间
+</code></pre><hr><h2 id=七快速参考表>七、快速参考表<a hidden class=anchor aria-hidden=true href=#七快速参考表>#</a></h2><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>场景</td><td>关键寄存器</td><td>检查点</td></tr><tr><td><strong>函数参数</strong></td><td>X0-X7</td><td>值是什么类型？指针？整数？</td></tr><tr><td><strong>返回值</strong></td><td>X0-X1 (128位)</td><td>函数返回了什么？</td></tr><tr><td><strong>栈回溯</strong></td><td>X29 (FP), X30 (LR)</td><td>调用链是什么？</td></tr><tr><td><strong>this 指针</strong></td><td>X0 (非静态成员函数)</td><td>对象地址在哪里？</td></tr><tr><td><strong>线程本地存储</strong></td><td>TPIDR_EL0 / X18</td><td>TLS 数据位置</td></tr><tr><td><strong>内核崩溃</strong></td><td>ELR_EL1, SPSR_EL1</td><td>崩溃时的 PC 和状态</td></tr></tbody></table><hr><h2 id=八学习建议>八、学习建议<a hidden class=anchor aria-hidden=true href=#八学习建议>#</a></h2><pre tabindex=0><code>1. 先掌握调用约定（AAPCS64）
+   └── 知道哪些寄存器可以随便用，哪些必须保存
+
+2. 理解栈帧结构（FP/LR 链）
+   └── 能够手动回溯函数调用栈
+
+3. 学习异常级别（EL0-EL3）
+   └── 理解不同特权级的寄存器差异
+
+4. 实践：用 GDB 调试 ARM64 程序
+   └── info registers
+   └── x/30i $pc
+   └── bt（backtrace）
+</code></pre></div><footer class=post-footer><ul class=post-tags><li><a href=https://lhao4.github.io/tags/cpu/>CPU</a></li><li><a href=https://lhao4.github.io/tags/%E6%9E%B6%E6%9E%84/>架构</a></li><li><a href=https://lhao4.github.io/tags/arm64/>ARM64</a></li><li><a href=https://lhao4.github.io/tags/x86/>X86</a></li></ul><nav class=paginav><a class=prev href=https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/compiler-optimization/><span class=title>« Prev</span><br><span>从零开始：现代编译器优化、性能优化与二进制优化的全面详解</span>
+</a><a class=next href=https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/><span class=title>Next »</span><br><span>ARM64汇编极简入门手册</span></a></nav></footer><div class=comments><script src=https://giscus.app/client.js data-repo=lhao4/lhao4.github.io data-repo-id=R_kgDORx_fcA data-category=Announcements data-category-id=DIC_kwDORx_fcM4C5X6F data-mapping=pathname data-strict=0 data-reactions-enabled=1 data-emit-metadata=0 data-input-position=bottom data-theme=preferred_color_scheme data-lang=zh-CN crossorigin=anonymous async></script></div></article><style>.fav-toggle-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .8rem;border:1px solid var(--border);border-radius:999px;background:0 0;color:inherit;font-size:.85rem;cursor:pointer;transition:all .2s}.fav-toggle-btn:hover{border-color:#e8a000;color:#e8a000}.fav-toggle-btn.is-faved{border-color:#e8a000;color:#e8a000;background:rgba(232,160,0,8%)}</style><script>(function(){const t="haonest-favs",e=window.location.pathname,r=document.title.replace(" | HaoNest",""),n=document.getElementById("fav-btn"),s=document.getElementById("fav-icon"),o=document.getElementById("fav-text");function i(){return JSON.parse(localStorage.getItem(t)||"[]")}function c(){return i().some(t=>t.url===e)}function a(){c()?(n.classList.add("is-faved"),s.textContent="★",o.textContent="已收藏"):(n.classList.remove("is-faved"),s.textContent="☆",o.textContent="收藏")}window.toggleFav=function(){const n=i(),s=n.findIndex(t=>t.url===e);s>=0?n.splice(s,1):n.unshift({title:r,url:e,date:(new Date).toLocaleDateString("zh-CN")}),localStorage.setItem(t,JSON.stringify(n)),a()},a()})()</script></main><footer class=footer><span>&copy; 2026 <a href=https://lhao4.github.io/>HaoNest</a></span> ·
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg></a><div id=read-progress></div><div id=toc-sidebar></div><script>(function(){const e=document.getElementById("read-progress");function t(){const n=window.scrollY,t=document.documentElement.scrollHeight-window.innerHeight;e.style.width=(t>0?n/t*100:0)+"%"}window.addEventListener("scroll",t,{passive:!0})})(),function(){const e=document.getElementById("toc-sidebar"),t=document.querySelector(".post-single #TableOfContents");if(!t||!e)return;e.innerHTML=t.innerHTML,t.parentElement.style.display="none";const n=[...e.querySelectorAll("a")],s=n.map(e=>{try{return document.getElementById(decodeURIComponent(e.hash.slice(1)))}catch{return null}}).filter(Boolean);function o(){let e=-1;const t=80;for(let n=0;n<s.length;n++)s[n].getBoundingClientRect().top<=t&&(e=n);n.forEach((t,n)=>t.classList.toggle("toc-active",n===e))}window.addEventListener("scroll",o,{passive:!0}),o()}()</script><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){document.body.scrollTop>800||document.documentElement.scrollTop>800?(mybutton.style.visibility="visible",mybutton.style.opacity="1"):(mybutton.style.visibility="hidden",mybutton.style.opacity="0")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="copy";function s(){t.innerHTML="copied!",setTimeout(()=>{t.innerHTML="copy"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>

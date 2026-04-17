@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:content="http://purl.org/rss/1.0/modules/content/"><channel><title>GitLab on HaoNest</title><link>https://lhao4.github.io/tags/gitlab/</link><description>Recent content in GitLab on HaoNest</description><generator>Hugo</generator><language>zh-cn</language><lastBuildDate>Sun, 01 Jun 2025 00:00:00 +0000</lastBuildDate><atom:link href="https://lhao4.github.io/tags/gitlab/index.xml" rel="self" type="application/rss+xml"/><item><title>Linux 服务器配置 SSH 连接 GitLab 仓库</title><link>https://lhao4.github.io/posts/linux/configure-ssh/</link><pubDate>Sun, 01 Jun 2025 00:00:00 +0000</pubDate><guid>https://lhao4.github.io/posts/linux/configure-ssh/</guid><description>&lt;p&gt;目标：&lt;strong&gt;让 Linux 服务器通过 SSH 访问公司 GitLab 仓库&lt;/strong&gt;（免密码 clone / push）。&lt;/p&gt;
+&lt;p&gt;核心流程只有 4 步：&lt;/p&gt;
+&lt;p&gt;1️⃣ 生成 SSH key2️⃣ 把公钥添加到 &lt;strong&gt;GitLab&lt;/strong&gt;&lt;br&gt;
+3️⃣ 测试 SSH 连接4️⃣ 使用 SSH clone&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="-一在-linux-服务器生成-ssh-密钥"&gt;⭐ 一、在 Linux 服务器生成 SSH 密钥&lt;/h1&gt;
+&lt;p&gt;推荐 &lt;strong&gt;ed25519&lt;/strong&gt;（更安全、更快）&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ssh-keygen -t ed25519 -C &amp;#34;your_email&amp;#34;
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;一路回车即可。&lt;/p&gt;
+&lt;p&gt;生成后默认文件：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;~/.ssh/id_ed25519
+~/.ssh/id_ed25519.pub
+&lt;/code&gt;&lt;/pre&gt;&lt;hr&gt;
+&lt;h1 id="-二查看公钥内容"&gt;⭐ 二、查看公钥内容&lt;/h1&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;cat ~/.ssh/id_ed25519.pub
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;复制整行输出。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="-三把公钥添加到-gitlab"&gt;⭐ 三、把公钥添加到 GitLab&lt;/h1&gt;
+&lt;p&gt;进入 GitLab：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;头像 → Preferences → SSH Keys
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;或直接：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;https://gitlab.xxx.com/-/profile/keys
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;粘贴公钥 → Add key。&lt;/p&gt;
+&lt;hr&gt;
+&lt;h1 id="-四测试-ssh-连接"&gt;⭐ 四、测试 SSH 连接&lt;/h1&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;ssh -T git@gitlab.xxx.com
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;第一次会提示：&lt;/p&gt;
+&lt;pre tabindex="0"&gt;&lt;code&gt;Are you sure you want to continue connecting?
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;输入：&lt;/p&gt;</description></item></channel></rss>

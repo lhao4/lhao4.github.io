@@ -1,0 +1,200 @@
+<!doctype html><html lang=en dir=auto data-theme=auto><head><meta charset=utf-8><meta http-equiv=X-UA-Compatible content="IE=edge"><meta name=viewport content="width=device-width,initial-scale=1,shrink-to-fit=no"><meta name=robots content="index, follow"><title>ARM64汇编极简入门手册 | HaoNest</title><meta name=keywords content="ARM64,汇编,底层"><meta name=description content="1. 核心概念（必须知道）
+1.1 寄存器（32个通用寄存器）
+
+  
+      
+          
+          
+          
+      
+  
+  
+      
+          寄存器
+          用途
+          记忆口诀
+      
+      
+          X0-X7
+          函数参数/返回值
+          0-7传参数
+      
+      
+          X8
+          系统调用号
+          8号 syscall
+      
+      
+          X9-X15
+          临时变量（用完即弃）
+          临时9到15
+      
+      
+          X16-X17
+          链接器专用
+          链接1617
+      
+      
+          X18
+          平台保留
+          平台18
+      
+      
+          X19-X28
+          跨函数保存的变量
+          保存19-28
+      
+      
+          X29 (FP)
+          栈帧指针
+          29帧指针
+      
+      
+          X30 (LR)
+          返回地址
+          30要返回
+      
+  
+
+W0-W30：X寄存器的低32位版本。用W操作后，高32位自动清零。
+
+1.2 特殊寄存器
+
+  
+      
+          
+          
+          
+      
+  
+  
+      
+          名称
+          功能
+          关键指令
+      
+      
+          SP
+          栈指针
+          STP/LDP 操作栈
+      
+      
+          PC
+          程序计数器（当前执行位置）
+          自动+4
+      
+      
+          XZR
+          零寄存器（读=0，写=丢弃）
+          CMP 底层用它
+      
+  
+
+
+2. 最常用的指令（先学这20个）
+2.1 数据搬运
+
+  
+      
+          
+          
+          
+      
+  
+  
+      
+          指令
+          示例
+          含义
+      
+      
+          MOV
+          MOV X0, X1
+          X0 = X1
+      
+      
+          MOV
+          MOV X0, #100
+          X0 = 100
+      
+      
+          LDR
+          LDR X0, [X1]
+          X0 = *X1（从内存读）
+      
+      
+          STR
+          STR X0, [X1]
+          *X1 = X0（写内存）
+      
+      
+          LDP
+          LDP X0, X1, [SP]
+          从栈弹出两个值
+      
+      
+          STP
+          STP X0, X1, [SP, #-16]!
+          压栈两个值（!表示先减SP）
+      
+  
+
+方括号[] = 内存访问"><meta name=author content="Hao"><link rel=canonical href=https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/><link crossorigin=anonymous href=/assets/css/stylesheet.6514448b179bddf919ae48dc99fdf4213cd88e0a9bd140097abea9cffb5a211e.css integrity="sha256-ZRREixeb3fkZrkjcmf30ITzYjgqb0UAJer6pz/taIR4=" rel="preload stylesheet" as=style><link rel=icon href=https://lhao4.github.io/favicon.ico><link rel=icon type=image/png sizes=16x16 href=https://lhao4.github.io/favicon-16x16.png><link rel=icon type=image/png sizes=32x32 href=https://lhao4.github.io/favicon-32x32.png><link rel=apple-touch-icon href=https://lhao4.github.io/apple-touch-icon.png><link rel=mask-icon href=https://lhao4.github.io/safari-pinned-tab.svg><meta name=theme-color content="#2e2e33"><meta name=msapplication-TileColor content="#2e2e33"><link rel=alternate hreflang=en href=https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/><noscript><style>#theme-toggle,.top-link{display:none}</style><style>@media(prefers-color-scheme:dark){:root{--theme:rgb(29, 30, 32);--entry:rgb(46, 46, 51);--primary:rgb(218, 218, 219);--secondary:rgb(155, 156, 157);--tertiary:rgb(65, 66, 68);--content:rgb(196, 196, 197);--code-block-bg:rgb(46, 46, 51);--code-bg:rgb(55, 56, 62);--border:rgb(51, 51, 51);color-scheme:dark}.list{background:var(--theme)}.toc{background:var(--entry)}}@media(prefers-color-scheme:light){.list::-webkit-scrollbar-thumb{border-color:var(--code-bg)}}</style></noscript><script>localStorage.getItem("pref-theme")==="dark"?document.querySelector("html").dataset.theme="dark":localStorage.getItem("pref-theme")==="light"?document.querySelector("html").dataset.theme="light":window.matchMedia("(prefers-color-scheme: dark)").matches?document.querySelector("html").dataset.theme="dark":document.querySelector("html").dataset.theme="light"</script><style>#read-progress{position:fixed;top:0;left:0;width:0%;height:3px;background:var(--primary);z-index:9999;transition:width .1s linear}#toc-sidebar{display:none;position:fixed;top:80px;right:max(20px,calc((100vw - 780px)/2 - 220px));width:200px;max-height:calc(100vh - 100px);overflow-y:auto;font-size:.82rem;line-height:1.5;z-index:100;padding:.8rem;border-left:2px solid var(--border)}#toc-sidebar::-webkit-scrollbar{width:3px}#toc-sidebar::-webkit-scrollbar-thumb{background:var(--border)}#toc-sidebar a{display:block;color:var(--secondary);text-decoration:none;padding:.15rem 0;border-radius:3px;transition:color .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#toc-sidebar a:hover{color:var(--primary)}#toc-sidebar a.toc-active{color:var(--primary);font-weight:500}#toc-sidebar ul{list-style:none;padding:0;margin:0}#toc-sidebar li{padding:0}#toc-sidebar li li{padding-left:.8rem}#toc-sidebar li li li{padding-left:1.6rem}@media(min-width:1200px){#toc-sidebar{display:block}}</style><meta property="og:url" content="https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/"><meta property="og:site_name" content="HaoNest"><meta property="og:title" content="ARM64汇编极简入门手册"><meta property="og:description" content="1. 核心概念（必须知道） 1.1 寄存器（32个通用寄存器） 寄存器 用途 记忆口诀 X0-X7 函数参数/返回值 0-7传参数 X8 系统调用号 8号 syscall X9-X15 临时变量（用完即弃） 临时9到15 X16-X17 链接器专用 链接1617 X18 平台保留 平台18 X19-X28 跨函数保存的变量 保存19-28 X29 (FP) 栈帧指针 29帧指针 X30 (LR) 返回地址 30要返回 W0-W30：X寄存器的低32位版本。用W操作后，高32位自动清零。
+1.2 特殊寄存器 名称 功能 关键指令 SP 栈指针 STP/LDP 操作栈 PC 程序计数器（当前执行位置） 自动+4 XZR 零寄存器（读=0，写=丢弃） CMP 底层用它 2. 最常用的指令（先学这20个） 2.1 数据搬运 指令 示例 含义 MOV MOV X0, X1 X0 = X1 MOV MOV X0, #100 X0 = 100 LDR LDR X0, [X1] X0 = *X1（从内存读） STR STR X0, [X1] *X1 = X0（写内存） LDP LDP X0, X1, [SP] 从栈弹出两个值 STP STP X0, X1, [SP, #-16]! 压栈两个值（!表示先减SP） 方括号[] = 内存访问"><meta property="og:locale" content="zh_cn"><meta property="og:type" content="article"><meta property="article:section" content="posts"><meta property="article:published_time" content="2025-12-20T00:00:00+00:00"><meta property="article:modified_time" content="2025-12-20T00:00:00+00:00"><meta property="article:tag" content="ARM64"><meta property="article:tag" content="汇编"><meta property="article:tag" content="底层"><meta name=twitter:card content="summary"><meta name=twitter:title content="ARM64汇编极简入门手册"><meta name=twitter:description content="1. 核心概念（必须知道） 1.1 寄存器（32个通用寄存器） 寄存器 用途 记忆口诀 X0-X7 函数参数/返回值 0-7传参数 X8 系统调用号 8号 syscall X9-X15 临时变量（用完即弃） 临时9到15 X16-X17 链接器专用 链接1617 X18 平台保留 平台18 X19-X28 跨函数保存的变量 保存19-28 X29 (FP) 栈帧指针 29帧指针 X30 (LR) 返回地址 30要返回 W0-W30：X寄存器的低32位版本。用W操作后，高32位自动清零。
+1.2 特殊寄存器 名称 功能 关键指令 SP 栈指针 STP/LDP 操作栈 PC 程序计数器（当前执行位置） 自动+4 XZR 零寄存器（读=0，写=丢弃） CMP 底层用它 2. 最常用的指令（先学这20个） 2.1 数据搬运 指令 示例 含义 MOV MOV X0, X1 X0 = X1 MOV MOV X0, #100 X0 = 100 LDR LDR X0, [X1] X0 = *X1（从内存读） STR STR X0, [X1] *X1 = X0（写内存） LDP LDP X0, X1, [SP] 从栈弹出两个值 STP STP X0, X1, [SP, #-16]! 压栈两个值（!表示先减SP） 方括号[] = 内存访问"><script type=application/ld+json>{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Posts","item":"https://lhao4.github.io/posts/"},{"@type":"ListItem","position":2,"name":"ARM64汇编极简入门手册","item":"https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/"}]}</script><script type=application/ld+json>{"@context":"https://schema.org","@type":"BlogPosting","headline":"ARM64汇编极简入门手册","name":"ARM64汇编极简入门手册","description":"1. 核心概念（必须知道） 1.1 寄存器（32个通用寄存器） 寄存器 用途 记忆口诀 X0-X7 函数参数/返回值 0-7传参数 X8 系统调用号 8号 syscall X9-X15 临时变量（用完即弃） 临时9到15 X16-X17 链接器专用 链接1617 X18 平台保留 平台18 X19-X28 跨函数保存的变量 保存19-28 X29 (FP) 栈帧指针 29帧指针 X30 (LR) 返回地址 30要返回 W0-W30：X寄存器的低32位版本。用W操作后，高32位自动清零。\n1.2 特殊寄存器 名称 功能 关键指令 SP 栈指针 STP/LDP 操作栈 PC 程序计数器（当前执行位置） 自动+4 XZR 零寄存器（读=0，写=丢弃） CMP 底层用它 2. 最常用的指令（先学这20个） 2.1 数据搬运 指令 示例 含义 MOV MOV X0, X1 X0 = X1 MOV MOV X0, #100 X0 = 100 LDR LDR X0, [X1] X0 = *X1（从内存读） STR STR X0, [X1] *X1 = X0（写内存） LDP LDP X0, X1, [SP] 从栈弹出两个值 STP STP X0, X1, [SP, #-16]! 压栈两个值（!表示先减SP） 方括号[] = 内存访问\n","keywords":["ARM64","汇编","底层"],"articleBody":"1. 核心概念（必须知道） 1.1 寄存器（32个通用寄存器） 寄存器 用途 记忆口诀 X0-X7 函数参数/返回值 0-7传参数 X8 系统调用号 8号 syscall X9-X15 临时变量（用完即弃） 临时9到15 X16-X17 链接器专用 链接1617 X18 平台保留 平台18 X19-X28 跨函数保存的变量 保存19-28 X29 (FP) 栈帧指针 29帧指针 X30 (LR) 返回地址 30要返回 W0-W30：X寄存器的低32位版本。用W操作后，高32位自动清零。\n1.2 特殊寄存器 名称 功能 关键指令 SP 栈指针 STP/LDP 操作栈 PC 程序计数器（当前执行位置） 自动+4 XZR 零寄存器（读=0，写=丢弃） CMP 底层用它 2. 最常用的指令（先学这20个） 2.1 数据搬运 指令 示例 含义 MOV MOV X0, X1 X0 = X1 MOV MOV X0, #100 X0 = 100 LDR LDR X0, [X1] X0 = *X1（从内存读） STR STR X0, [X1] *X1 = X0（写内存） LDP LDP X0, X1, [SP] 从栈弹出两个值 STP STP X0, X1, [SP, #-16]! 压栈两个值（!表示先减SP） 方括号[] = 内存访问\n2.2 算术运算 指令 示例 含义 ADD ADD X0, X1, X2 X0 = X1 + X2 SUB SUB X0, X1, #10 X0 = X1 - 10 ADDS ADDS X0, X1, X2 加法+更新标志位 CMP CMP X0, X1 比较X0-X1（结果丢到XZR） 带S的指令会更新NZCV标志位\n2.3 逻辑与移位 指令 示例 含义 AND AND X0, X1, X2 按位与 ORR ORR X0, X1, X2 按位或 LSL LSL X0, X1, #3 左移3位（×8） LSR LSR X0, X1, #2 右移2位（÷4） 2.4 分支跳转 指令 示例 含义 B B label 无条件跳转 B.EQ B.EQ label 相等则跳转（还有其他条件） CBZ CBZ X0, label X0==0则跳转 CBNZ CBNZ X0, label X0!=0则跳转 BL BL func 调用函数（保存返回地址到X30） RET RET 返回（从X30取地址） 条件后缀：EQ(=), NE(≠), GT(\u003e), LT(\u003c), GE(≥), LE(≤)\n2.5 系统调用 指令 示例 含义 SVC #0 SVC #0 触发系统调用 系统调用模板：\nMOV X0, fd ; 第1个参数 MOV X1, buf ; 第2个参数 MOV X2, count ; 第3个参数 MOV X8, #63 ; syscall号（read=63） SVC #0 ; 进入内核 3. 函数调用约定（AAPCS64） 3.1 参数传递 整数/指针：X0-X7（最多8个） 浮点：V0-V7 更多参数：压栈 3.2 返回值 X0：主返回值 X1:X0：128位返回值（高位:低位） 3.3 寄存器保存责任 谁保存 寄存器 调用者保存（调用前自己压栈） X0-X18 被调用者保存（函数内用完要恢复） X19-X28, X29, X30 4. 典型代码模式（看懂这些就够了） 4.1 函数序言/尾声（标准套路） ; 函数开头（Prologue） STP X29, X30, [SP, #-16]! ; 保存FP和LR，分配16字节栈空间 MOV X29, SP ; 更新帧指针 ; ... 函数体 ... ; 函数结尾（Epilogue） LDP X29, X30, [SP], #16 ; 恢复FP和LR，释放栈空间 RET ; 返回 看到 STP X29, X30 就知道是函数开头，看到 LDP X29, X30 + RET 就是函数结尾\n4.2 条件判断 CMP X0, X1 ; 比较 B.GT greater ; 有符号大于则跳 B.HI higher ; 无符号大于则跳（注意区别！） ; 或者无分支版本 CSEL X2, X0, X1, GT ; X2 = (X0\u003eX1) ? X0 : X1 4.3 循环结构 MOV X0, #10 ; 计数器 loop: CBZ X0, done ; X0==0则结束 SUB X0, X0, #1 ; 计数器减1 B loop ; 继续循环 done: 4.4 访问全局变量（PIC代码） ADRP X0, sym_page ; 加载4KB页基地址（±4GB范围） ADD X0, X0, :lo12:sym ; 加上页内偏移 LDR X1, [X0] ; 读取全局变量 5. 快速查表：条件码 条件 含义 测试 EQ 等于 Z==1 NE 不等于 Z==0 GT 大于（有符号） Z0 \u0026\u0026 NV LT 小于（有符号） N!=V HI 高于（无符号） C1 \u0026\u0026 Z0 LO 低于（无符号） C==0 6. 实战：读一段汇编 C代码：\nint add(int a, int b) { return a + b; } ARM64汇编：\nadd: ADD W0, W0, W1 ; W0 = W0 + W1（用W因为int是32位） RET ; 返回，结果在W0 C代码：\nint max(int a, int b) { return (a \u003e b) ? a : b; } ARM64汇编：\nmax: CMP W0, W1 ; 比较a和b CSEL W0, W0, W1, GT ; 如果GT(大于)，W0=a，否则W0=b RET 7. 学习路径建议 第1周：记住寄存器用途 + MOV/LDR/STR/ADD/SUB 第2周：掌握分支指令 B/CBZ/CMP + 条件码 第3周：理解函数调用 BL/RET + 栈操作 STP/LDP 第4周：系统调用 SVC + 看实际代码 推荐练习：\n用 objdump -d 反编译简单C程序 对照本手册逐行理解 修改C代码，观察汇编变化 ","wordCount":"489","inLanguage":"en","datePublished":"2025-12-20T00:00:00Z","dateModified":"2025-12-20T00:00:00Z","author":{"@type":"Person","name":"Hao"},"mainEntityOfPage":{"@type":"WebPage","@id":"https://lhao4.github.io/posts/%E6%B1%87%E7%BC%96/arm64-assembly/"},"publisher":{"@type":"Organization","name":"HaoNest","logo":{"@type":"ImageObject","url":"https://lhao4.github.io/favicon.ico"}}}</script></head><body id=top><header class=header><nav class=nav><div class=logo><a href=https://lhao4.github.io/ accesskey=h title="HaoNest (Alt + H)">HaoNest</a><div class=logo-switches><button id=theme-toggle accesskey=t title="(Alt + T)" aria-label="Toggle theme">
+<svg id="moon" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+<svg id="sun" width="24" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg></button></div></div><ul id=menu><li><a href=https://lhao4.github.io/posts/ title=博客><span>博客</span></a></li><li><a href=https://lhao4.github.io/nav/ title=导航><span>导航</span></a></li><li><a href=https://lhao4.github.io/tools/ title=工具><span>工具</span></a></li><li><a href=https://lhao4.github.io/ResumeFlow/ title=简历制作><span>简历制作</span>&nbsp;
+<svg fill="none" shape-rendering="geometricPrecision" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" viewBox="0 0 24 24" height="12" width="12"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><path d="M15 3h6v6"/><path d="M10 14 21 3"/></svg></a></li><li><a href=https://lhao4.github.io/categories/ title=分类><span>分类</span></a></li><li><a href=https://lhao4.github.io/tags/ title=标签><span>标签</span></a></li><li><a href=https://lhao4.github.io/favorites/ title=收藏><span>收藏</span></a></li><li><a href=https://lhao4.github.io/search/ title="搜索 (Alt + /)" accesskey=/><span>搜索</span></a></li></ul></nav></header><main class=main><article class=post-single><header class=post-header><div class=breadcrumbs><a href=https://lhao4.github.io/>Home</a>&nbsp;»&nbsp;<a href=https://lhao4.github.io/posts/>Posts</a></div><h1 class="post-title entry-hint-parent">ARM64汇编极简入门手册</h1><div class=post-meta style=display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.5rem><span><span title='2025-12-20 00:00:00 +0000 UTC'>December 20, 2025</span>&nbsp;·&nbsp;<span>3 min</span>&nbsp;·&nbsp;<span>489 words</span>&nbsp;·&nbsp;<span>Hao</span></span>
+<button id=fav-btn onclick=toggleFav() class=fav-toggle-btn title=收藏文章>
+<span id=fav-icon>☆</span>
+<span id=fav-text>收藏</span></button></div></header><div class=toc><details><summary accesskey=c title="(Alt + C)"><span class=details>Table of Contents</span></summary><div class=inner><nav id=TableOfContents><ul><li><a href=#1-核心概念必须知道>1. 核心概念（必须知道）</a><ul><li><a href=#11-寄存器32个通用寄存器>1.1 寄存器（32个通用寄存器）</a></li><li><a href=#12-特殊寄存器>1.2 特殊寄存器</a></li></ul></li><li><a href=#2-最常用的指令先学这20个>2. 最常用的指令（先学这20个）</a><ul><li><a href=#21-数据搬运>2.1 数据搬运</a></li><li><a href=#22-算术运算>2.2 算术运算</a></li><li><a href=#23-逻辑与移位>2.3 逻辑与移位</a></li><li><a href=#24-分支跳转>2.4 分支跳转</a></li><li><a href=#25-系统调用>2.5 系统调用</a></li></ul></li><li><a href=#3-函数调用约定aapcs64>3. 函数调用约定（AAPCS64）</a><ul><li><a href=#31-参数传递>3.1 参数传递</a></li><li><a href=#32-返回值>3.2 返回值</a></li><li><a href=#33-寄存器保存责任>3.3 寄存器保存责任</a></li></ul></li><li><a href=#4-典型代码模式看懂这些就够了>4. 典型代码模式（看懂这些就够了）</a><ul><li><a href=#41-函数序言尾声标准套路>4.1 函数序言/尾声（标准套路）</a></li><li><a href=#42-条件判断>4.2 条件判断</a></li><li><a href=#43-循环结构>4.3 循环结构</a></li><li><a href=#44-访问全局变量pic代码>4.4 访问全局变量（PIC代码）</a></li></ul></li><li><a href=#5-快速查表条件码>5. 快速查表：条件码</a></li><li><a href=#6-实战读一段汇编>6. 实战：读一段汇编</a></li><li><a href=#7-学习路径建议>7. 学习路径建议</a></li></ul></nav></div></details></div><div class=post-content><h2 id=1-核心概念必须知道>1. 核心概念（必须知道）<a hidden class=anchor aria-hidden=true href=#1-核心概念必须知道>#</a></h2><h3 id=11-寄存器32个通用寄存器>1.1 寄存器（32个通用寄存器）<a hidden class=anchor aria-hidden=true href=#11-寄存器32个通用寄存器>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>寄存器</td><td>用途</td><td>记忆口诀</td></tr><tr><td>X0-X7</td><td>函数参数/返回值</td><td><strong>0-7传参数</strong></td></tr><tr><td>X8</td><td>系统调用号</td><td><strong>8号 syscall</strong></td></tr><tr><td>X9-X15</td><td>临时变量（用完即弃）</td><td><strong>临时9到15</strong></td></tr><tr><td>X16-X17</td><td>链接器专用</td><td><strong>链接1617</strong></td></tr><tr><td>X18</td><td>平台保留</td><td><strong>平台18</strong></td></tr><tr><td>X19-X28</td><td>跨函数保存的变量</td><td><strong>保存19-28</strong></td></tr><tr><td>X29 (FP)</td><td>栈帧指针</td><td><strong>29帧指针</strong></td></tr><tr><td>X30 (LR)</td><td>返回地址</td><td><strong>30要返回</strong></td></tr></tbody></table><p><strong>W0-W30</strong>：X寄存器的低32位版本。用W操作后，高32位自动清零。</p><hr><h3 id=12-特殊寄存器>1.2 特殊寄存器<a hidden class=anchor aria-hidden=true href=#12-特殊寄存器>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>名称</td><td>功能</td><td>关键指令</td></tr><tr><td>SP</td><td>栈指针</td><td><code>STP/LDP</code> 操作栈</td></tr><tr><td>PC</td><td>程序计数器（当前执行位置）</td><td>自动+4</td></tr><tr><td>XZR</td><td>零寄存器（读=0，写=丢弃）</td><td><code>CMP</code> 底层用它</td></tr></tbody></table><hr><h2 id=2-最常用的指令先学这20个>2. 最常用的指令（先学这20个）<a hidden class=anchor aria-hidden=true href=#2-最常用的指令先学这20个>#</a></h2><h3 id=21-数据搬运>2.1 数据搬运<a hidden class=anchor aria-hidden=true href=#21-数据搬运>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>指令</td><td>示例</td><td>含义</td></tr><tr><td><code>MOV</code></td><td><code>MOV X0, X1</code></td><td>X0 = X1</td></tr><tr><td><code>MOV</code></td><td><code>MOV X0, #100</code></td><td>X0 = 100</td></tr><tr><td><code>LDR</code></td><td><code>LDR X0, [X1]</code></td><td>X0 = *X1（从内存读）</td></tr><tr><td><code>STR</code></td><td><code>STR X0, [X1]</code></td><td>*X1 = X0（写内存）</td></tr><tr><td><code>LDP</code></td><td><code>LDP X0, X1, [SP]</code></td><td>从栈弹出两个值</td></tr><tr><td><code>STP</code></td><td><code>STP X0, X1, [SP, #-16]!</code></td><td>压栈两个值（!表示先减SP）</td></tr></tbody></table><p><strong>方括号[] = 内存访问</strong></p><hr><h3 id=22-算术运算>2.2 算术运算<a hidden class=anchor aria-hidden=true href=#22-算术运算>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>指令</td><td>示例</td><td>含义</td></tr><tr><td><code>ADD</code></td><td><code>ADD X0, X1, X2</code></td><td>X0 = X1 + X2</td></tr><tr><td><code>SUB</code></td><td><code>SUB X0, X1, #10</code></td><td>X0 = X1 - 10</td></tr><tr><td><code>ADDS</code></td><td><code>ADDS X0, X1, X2</code></td><td>加法+更新标志位</td></tr><tr><td><code>CMP</code></td><td><code>CMP X0, X1</code></td><td>比较X0-X1（结果丢到XZR）</td></tr></tbody></table><p><strong>带S的指令会更新NZCV标志位</strong></p><hr><h3 id=23-逻辑与移位>2.3 逻辑与移位<a hidden class=anchor aria-hidden=true href=#23-逻辑与移位>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>指令</td><td>示例</td><td>含义</td></tr><tr><td><code>AND</code></td><td><code>AND X0, X1, X2</code></td><td>按位与</td></tr><tr><td><code>ORR</code></td><td><code>ORR X0, X1, X2</code></td><td>按位或</td></tr><tr><td><code>LSL</code></td><td><code>LSL X0, X1, #3</code></td><td>左移3位（×8）</td></tr><tr><td><code>LSR</code></td><td><code>LSR X0, X1, #2</code></td><td>右移2位（÷4）</td></tr></tbody></table><hr><h3 id=24-分支跳转>2.4 分支跳转<a hidden class=anchor aria-hidden=true href=#24-分支跳转>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>指令</td><td>示例</td><td>含义</td></tr><tr><td><code>B</code></td><td><code>B label</code></td><td>无条件跳转</td></tr><tr><td><code>B.EQ</code></td><td><code>B.EQ label</code></td><td>相等则跳转（还有其他条件）</td></tr><tr><td><code>CBZ</code></td><td><code>CBZ X0, label</code></td><td>X0==0则跳转</td></tr><tr><td><code>CBNZ</code></td><td><code>CBNZ X0, label</code></td><td>X0!=0则跳转</td></tr><tr><td><code>BL</code></td><td><code>BL func</code></td><td>调用函数（保存返回地址到X30）</td></tr><tr><td><code>RET</code></td><td><code>RET</code></td><td>返回（从X30取地址）</td></tr></tbody></table><p><strong>条件后缀：EQ(=), NE(≠), GT(>), LT(&lt;), GE(≥), LE(≤)</strong></p><hr><h3 id=25-系统调用>2.5 系统调用<a hidden class=anchor aria-hidden=true href=#25-系统调用>#</a></h3><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>指令</td><td>示例</td><td>含义</td></tr><tr><td><code>SVC #0</code></td><td><code>SVC #0</code></td><td>触发系统调用</td></tr></tbody></table><p><strong>系统调用模板：</strong></p><pre tabindex=0><code>MOV X0, fd      ; 第1个参数
+MOV X1, buf     ; 第2个参数  
+MOV X2, count   ; 第3个参数
+MOV X8, #63     ; syscall号（read=63）
+SVC #0          ; 进入内核
+</code></pre><hr><h2 id=3-函数调用约定aapcs64>3. 函数调用约定（AAPCS64）<a hidden class=anchor aria-hidden=true href=#3-函数调用约定aapcs64>#</a></h2><h3 id=31-参数传递>3.1 参数传递<a hidden class=anchor aria-hidden=true href=#31-参数传递>#</a></h3><ul><li><strong>整数/指针</strong>：X0-X7（最多8个）</li><li><strong>浮点</strong>：V0-V7</li><li><strong>更多参数</strong>：压栈</li></ul><h3 id=32-返回值>3.2 返回值<a hidden class=anchor aria-hidden=true href=#32-返回值>#</a></h3><ul><li><strong>X0</strong>：主返回值</li><li><strong>X1:X0</strong>：128位返回值（高位:低位）</li></ul><h3 id=33-寄存器保存责任>3.3 寄存器保存责任<a hidden class=anchor aria-hidden=true href=#33-寄存器保存责任>#</a></h3><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td>谁保存</td><td>寄存器</td></tr><tr><td><strong>调用者保存</strong>（调用前自己压栈）</td><td>X0-X18</td></tr><tr><td><strong>被调用者保存</strong>（函数内用完要恢复）</td><td>X19-X28, X29, X30</td></tr></tbody></table><hr><h2 id=4-典型代码模式看懂这些就够了>4. 典型代码模式（看懂这些就够了）<a hidden class=anchor aria-hidden=true href=#4-典型代码模式看懂这些就够了>#</a></h2><h3 id=41-函数序言尾声标准套路>4.1 函数序言/尾声（标准套路）<a hidden class=anchor aria-hidden=true href=#41-函数序言尾声标准套路>#</a></h3><pre tabindex=0><code>; 函数开头（Prologue）
+STP X29, X30, [SP, #-16]!   ; 保存FP和LR，分配16字节栈空间
+MOV X29, SP                  ; 更新帧指针
+
+; ... 函数体 ...
+
+; 函数结尾（Epilogue）  
+LDP X29, X30, [SP], #16      ; 恢复FP和LR，释放栈空间
+RET                          ; 返回
+</code></pre><p><strong>看到</strong> <code>STP X29, X30</code> <strong>就知道是函数开头，看到</strong> <code>LDP X29, X30</code> <strong>+</strong> <code>RET</code> <strong>就是函数结尾</strong></p><hr><h3 id=42-条件判断>4.2 条件判断<a hidden class=anchor aria-hidden=true href=#42-条件判断>#</a></h3><pre tabindex=0><code>CMP X0, X1        ; 比较
+B.GT greater      ; 有符号大于则跳
+B.HI higher       ; 无符号大于则跳（注意区别！）
+
+; 或者无分支版本
+CSEL X2, X0, X1, GT   ; X2 = (X0&gt;X1) ? X0 : X1
+</code></pre><hr><h3 id=43-循环结构>4.3 循环结构<a hidden class=anchor aria-hidden=true href=#43-循环结构>#</a></h3><pre tabindex=0><code>    MOV X0, #10       ; 计数器
+loop:
+    CBZ X0, done      ; X0==0则结束
+    SUB X0, X0, #1    ; 计数器减1
+    B loop            ; 继续循环
+done:
+</code></pre><hr><h3 id=44-访问全局变量pic代码>4.4 访问全局变量（PIC代码）<a hidden class=anchor aria-hidden=true href=#44-访问全局变量pic代码>#</a></h3><pre tabindex=0><code>ADRP X0, sym_page       ; 加载4KB页基地址（±4GB范围）
+ADD  X0, X0, :lo12:sym  ; 加上页内偏移
+LDR  X1, [X0]           ; 读取全局变量
+</code></pre><hr><h2 id=5-快速查表条件码>5. 快速查表：条件码<a hidden class=anchor aria-hidden=true href=#5-快速查表条件码>#</a></h2><table><thead><tr><th></th><th></th><th></th></tr></thead><tbody><tr><td>条件</td><td>含义</td><td>测试</td></tr><tr><td>EQ</td><td>等于</td><td>Z==1</td></tr><tr><td>NE</td><td>不等于</td><td>Z==0</td></tr><tr><td>GT</td><td>大于（有符号）</td><td>Z0 && NV</td></tr><tr><td>LT</td><td>小于（有符号）</td><td>N!=V</td></tr><tr><td>HI</td><td>高于（无符号）</td><td>C1 && Z0</td></tr><tr><td>LO</td><td>低于（无符号）</td><td>C==0</td></tr></tbody></table><hr><h2 id=6-实战读一段汇编>6. 实战：读一段汇编<a hidden class=anchor aria-hidden=true href=#6-实战读一段汇编>#</a></h2><p><strong>C代码：</strong></p><pre tabindex=0><code>int add(int a, int b) {
+    return a + b;
+}
+</code></pre><p><strong>ARM64汇编：</strong></p><pre tabindex=0><code>add:
+    ADD W0, W0, W1    ; W0 = W0 + W1（用W因为int是32位）
+    RET               ; 返回，结果在W0
+</code></pre><hr><p><strong>C代码：</strong></p><pre tabindex=0><code>int max(int a, int b) {
+    return (a &gt; b) ? a : b;
+}
+</code></pre><p><strong>ARM64汇编：</strong></p><pre tabindex=0><code>max:
+    CMP W0, W1        ; 比较a和b
+    CSEL W0, W0, W1, GT   ; 如果GT(大于)，W0=a，否则W0=b
+    RET
+</code></pre><hr><h2 id=7-学习路径建议>7. 学习路径建议<a hidden class=anchor aria-hidden=true href=#7-学习路径建议>#</a></h2><pre tabindex=0><code>第1周：记住寄存器用途 + MOV/LDR/STR/ADD/SUB
+第2周：掌握分支指令 B/CBZ/CMP + 条件码
+第3周：理解函数调用 BL/RET + 栈操作 STP/LDP
+第4周：系统调用 SVC + 看实际代码
+</code></pre><p><strong>推荐练习：</strong></p><ol><li>用 <code>objdump -d</code> 反编译简单C程序</li><li>对照本手册逐行理解</li><li>修改C代码，观察汇编变化</li></ol></div><footer class=post-footer><ul class=post-tags><li><a href=https://lhao4.github.io/tags/arm64/>ARM64</a></li><li><a href=https://lhao4.github.io/tags/%E6%B1%87%E7%BC%96/>汇编</a></li><li><a href=https://lhao4.github.io/tags/%E5%BA%95%E5%B1%82/>底层</a></li></ul><nav class=paginav><a class=prev href=https://lhao4.github.io/posts/%E5%BA%95%E5%B1%82%E5%AD%A6%E4%B9%A0/cpu-architecture/><span class=title>« Prev</span><br><span>CPU 架构分类详解</span>
+</a><a class=next href=https://lhao4.github.io/posts/%E6%9C%BA%E5%99%A8%E5%AD%A6%E4%B9%A0/iris-classification/><span class=title>Next »</span><br><span>基于逻辑回归的鸢尾花分类项目研究报告</span></a></nav></footer><div class=comments><script src=https://giscus.app/client.js data-repo=lhao4/lhao4.github.io data-repo-id=R_kgDORx_fcA data-category=Announcements data-category-id=DIC_kwDORx_fcM4C5X6F data-mapping=pathname data-strict=0 data-reactions-enabled=1 data-emit-metadata=0 data-input-position=bottom data-theme=preferred_color_scheme data-lang=zh-CN crossorigin=anonymous async></script></div></article><style>.fav-toggle-btn{display:inline-flex;align-items:center;gap:.3rem;padding:.3rem .8rem;border:1px solid var(--border);border-radius:999px;background:0 0;color:inherit;font-size:.85rem;cursor:pointer;transition:all .2s}.fav-toggle-btn:hover{border-color:#e8a000;color:#e8a000}.fav-toggle-btn.is-faved{border-color:#e8a000;color:#e8a000;background:rgba(232,160,0,8%)}</style><script>(function(){const t="haonest-favs",e=window.location.pathname,r=document.title.replace(" | HaoNest",""),n=document.getElementById("fav-btn"),s=document.getElementById("fav-icon"),o=document.getElementById("fav-text");function i(){return JSON.parse(localStorage.getItem(t)||"[]")}function c(){return i().some(t=>t.url===e)}function a(){c()?(n.classList.add("is-faved"),s.textContent="★",o.textContent="已收藏"):(n.classList.remove("is-faved"),s.textContent="☆",o.textContent="收藏")}window.toggleFav=function(){const n=i(),s=n.findIndex(t=>t.url===e);s>=0?n.splice(s,1):n.unshift({title:r,url:e,date:(new Date).toLocaleDateString("zh-CN")}),localStorage.setItem(t,JSON.stringify(n)),a()},a()})()</script></main><footer class=footer><span>&copy; 2026 <a href=https://lhao4.github.io/>HaoNest</a></span> ·
+<span>Powered by
+<a href=https://gohugo.io/ rel="noopener noreferrer" target=_blank>Hugo</a> &
+<a href=https://github.com/adityatelange/hugo-PaperMod/ rel=noopener target=_blank>PaperMod</a></span></footer><a href=#top aria-label="go to top" title="Go to Top (Alt + G)" class=top-link id=top-link accesskey=g><svg viewBox="0 0 12 6" fill="currentColor"><path d="M12 6H0l6-6z"/></svg></a><div id=read-progress></div><div id=toc-sidebar></div><script>(function(){const e=document.getElementById("read-progress");function t(){const n=window.scrollY,t=document.documentElement.scrollHeight-window.innerHeight;e.style.width=(t>0?n/t*100:0)+"%"}window.addEventListener("scroll",t,{passive:!0})})(),function(){const e=document.getElementById("toc-sidebar"),t=document.querySelector(".post-single #TableOfContents");if(!t||!e)return;e.innerHTML=t.innerHTML,t.parentElement.style.display="none";const n=[...e.querySelectorAll("a")],s=n.map(e=>{try{return document.getElementById(decodeURIComponent(e.hash.slice(1)))}catch{return null}}).filter(Boolean);function o(){let e=-1;const t=80;for(let n=0;n<s.length;n++)s[n].getBoundingClientRect().top<=t&&(e=n);n.forEach((t,n)=>t.classList.toggle("toc-active",n===e))}window.addEventListener("scroll",o,{passive:!0}),o()}()</script><script>let menu=document.getElementById("menu");if(menu){const e=localStorage.getItem("menu-scroll-position");e&&(menu.scrollLeft=parseInt(e,10)),menu.onscroll=function(){localStorage.setItem("menu-scroll-position",menu.scrollLeft)}}document.querySelectorAll('a[href^="#"]').forEach(e=>{e.addEventListener("click",function(e){e.preventDefault();var t=this.getAttribute("href").substr(1);window.matchMedia("(prefers-reduced-motion: reduce)").matches?document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView():document.querySelector(`[id='${decodeURIComponent(t)}']`).scrollIntoView({behavior:"smooth"}),t==="top"?history.replaceState(null,null," "):history.pushState(null,null,`#${t}`)})})</script><script>var mybutton=document.getElementById("top-link");window.onscroll=function(){document.body.scrollTop>800||document.documentElement.scrollTop>800?(mybutton.style.visibility="visible",mybutton.style.opacity="1"):(mybutton.style.visibility="hidden",mybutton.style.opacity="0")}</script><script>document.getElementById("theme-toggle").addEventListener("click",()=>{const e=document.querySelector("html");e.dataset.theme==="dark"?(e.dataset.theme="light",localStorage.setItem("pref-theme","light")):(e.dataset.theme="dark",localStorage.setItem("pref-theme","dark"))})</script><script>document.querySelectorAll("pre > code").forEach(e=>{const n=e.parentNode.parentNode,t=document.createElement("button");t.classList.add("copy-code"),t.innerHTML="copy";function s(){t.innerHTML="copied!",setTimeout(()=>{t.innerHTML="copy"},2e3)}t.addEventListener("click",t=>{if("clipboard"in navigator){navigator.clipboard.writeText(e.textContent),s();return}const n=document.createRange();n.selectNodeContents(e);const o=window.getSelection();o.removeAllRanges(),o.addRange(n);try{document.execCommand("copy"),s()}catch{}o.removeRange(n)}),n.classList.contains("highlight")?n.appendChild(t):n.parentNode.firstChild==n||(e.parentNode.parentNode.parentNode.parentNode.parentNode.nodeName=="TABLE"?e.parentNode.parentNode.parentNode.parentNode.parentNode.appendChild(t):e.parentNode.appendChild(t))})</script></body></html>
